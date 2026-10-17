@@ -52,22 +52,6 @@ pub struct Theme {
 }
 
 impl Theme {
-    pub fn new(
-        background: Style,
-        text: Style,
-        accent: Style,
-        alive_cell: Style,
-        dead_cell: Style,
-    ) -> Self {
-        Self {
-            background,
-            text,
-            accent,
-            alive_cell,
-            dead_cell,
-        }
-    }
-
     pub fn from(theme_name: ThemeName) -> Self {
         match theme_name {
             ThemeName::Matrix => Theme::matrix(),
