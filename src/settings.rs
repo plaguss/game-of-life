@@ -1,7 +1,7 @@
 use std::time::Duration;
 
-use crate::theme::{Theme, ThemeName};
 use crate::patterns::{Pattern, PatternName};
+use crate::theme::{Theme, ThemeName};
 
 #[derive(Clone, Debug)]
 pub struct Settings {

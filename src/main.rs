@@ -13,16 +13,12 @@ mod app;
 mod grid;
 mod patterns;
 mod rules;
+mod settings;
 mod theme;
 mod ui;
-mod settings;
 
 use crate::grid::Grid;
-use crate::{
-    app::App,
-    rules::Rules,
-    settings::Settings
-};
+use crate::{app::App, rules::Rules, settings::Settings};
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Setup terminal

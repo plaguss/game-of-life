@@ -6,11 +6,7 @@ use ratatui::layout::Rect;
 use ratatui::{DefaultTerminal, Frame};
 
 use crate::{
-    grid::Grid,
-    rules::Rules,
-    settings::Settings,
-    theme::ThemeName,    
-    ui,
+    grid::Grid, patterns::PatternName, rules::Rules, settings::Settings, theme::ThemeName, ui,
 };
 
 /// Determines which overlay is open.
@@ -31,9 +27,9 @@ pub enum CurrentMenu {
 pub enum SettingsPage {
     Main { selected: usize },
     Fps,
-    Theme { selected: usize }, // TODO: Needs the patterns too
+    Theme { selected: usize },
+    Pattern { selected: usize },
 }
-
 
 pub struct App {
     grid: Grid,
@@ -99,21 +95,20 @@ impl App {
             CurrentMenu::Help => {
                 ui::render_help_message(frame, area, &self.settings.get_theme());
             }
-            // CurrentMenu::Settings { selected } => {
-            CurrentMenu::Settings(page) => {
-                match page {
-                    SettingsPage::Main { selected } => {
-                        ui::render_settings_menu(frame, area, &self.settings, *selected);
-                    }
-                    SettingsPage::Fps => {
-                        ui::render_fps_menu(frame, area, &self.settings);
-                    }
-                    SettingsPage::Theme { selected } => {
-                        ui::render_theme_menu(frame, area, &self.settings, *selected);
-                    }
-                    _ => {} // TODO: Implement the other settings submenus
+            CurrentMenu::Settings(page) => match page {
+                SettingsPage::Main { selected } => {
+                    ui::render_settings_menu(frame, area, &self.settings, *selected);
                 }
-            }
+                SettingsPage::Fps => {
+                    ui::render_fps_menu(frame, area, &self.settings);
+                }
+                SettingsPage::Theme { selected } => {
+                    ui::render_theme_menu(frame, area, &self.settings, *selected);
+                }
+                SettingsPage::Pattern { selected } => {
+                    ui::render_patterns_menu(frame, area, &self.settings, *selected);
+                }
+            },
         }
     }
 
@@ -153,69 +148,90 @@ impl App {
         }
     }
 
-    /// Manages the interaction within the setings subpage
     fn handle_settings_key(&mut self, page: SettingsPage, key_event: KeyEvent) {
         match page {
-            SettingsPage::Main { selected } => match key_event.code {
-                KeyCode::Down => {
-                    self.current_menu = CurrentMenu::Settings(SettingsPage::Main {
-                        selected: selected.saturating_add(1).clamp(0, 2),
-                    })
-                }
-                KeyCode::Up => {
-                    self.current_menu = CurrentMenu::Settings(SettingsPage::Main {
-                        selected: selected.saturating_sub(1).clamp(0, 2),
-                    })
-                }
-                KeyCode::Enter => match selected {
-                    0 => self.current_menu = CurrentMenu::Settings(SettingsPage::Fps),
-                    1 => {
-                        self.current_menu =
-                            CurrentMenu::Settings(SettingsPage::Theme { selected: 0 })
-                    }
-                    // Should open Theme here, and then pattern, with the index in the
-                    //place of the theme list not implemented
-                    _ => {}
-                },
-                KeyCode::Char('q') | KeyCode::Esc | KeyCode::Backspace => {
-                    self.current_menu = CurrentMenu::None
-                }
+            SettingsPage::Main { selected } => self.on_main_page(key_event, selected),
+            SettingsPage::Fps => self.on_fps_page(key_event),
+            SettingsPage::Theme { selected } => self.on_theme_page(key_event, selected),
+            SettingsPage::Pattern { selected } => self.on_patterns_page(key_event, selected),
+        }
+    }
+
+    fn on_main_page(&mut self, key_event: KeyEvent, selected: usize) {
+        match key_event.code {
+            KeyCode::Down => {
+                self.current_menu = CurrentMenu::Settings(SettingsPage::Main {
+                    selected: selected.saturating_add(1).clamp(0, 2),
+                })
+            }
+            KeyCode::Up => {
+                self.current_menu = CurrentMenu::Settings(SettingsPage::Main {
+                    selected: selected.saturating_sub(1).clamp(0, 2),
+                })
+            }
+            KeyCode::Enter => match selected {
+                0 => self.current_menu = CurrentMenu::Settings(SettingsPage::Fps),
+                1 => self.current_menu = CurrentMenu::Settings(SettingsPage::Theme { selected: 0 }),
+                2 => self.current_menu = CurrentMenu::Settings(SettingsPage::Pattern { selected: 0 }),
+                // Should open Theme here, and then pattern, with the index in the
+                //place of the theme list not implemented
                 _ => {}
             },
-            SettingsPage::Fps => match key_event.code {
-                KeyCode::Down => {
-                    self.settings.fps = self.settings.fps.saturating_sub(1).clamp(1, 60)
-                }
-                KeyCode::Up => self.settings.fps = self.settings.fps.saturating_add(1).clamp(1, 60),
-                KeyCode::Char('q') | KeyCode::Esc | KeyCode::Backspace => {
-                    self.current_menu = CurrentMenu::Settings(SettingsPage::Main { selected: 0 })
-                }
-                _ => {}
-            },
-            SettingsPage::Theme { selected } => match key_event.code {
-                KeyCode::Down => {
-                    self.current_menu = CurrentMenu::Settings(SettingsPage::Theme {
-                        selected: selected.saturating_add(1).clamp(0, ThemeName::count()),
-                    })
-                }
-                KeyCode::Up => {
-                    self.current_menu = CurrentMenu::Settings(SettingsPage::Theme {
-                        selected: selected.saturating_sub(1).clamp(0, ThemeName::count()),
-                    })
-                }
-                KeyCode::Enter => self.settings.theme = ThemeName::by_index(selected),
-                KeyCode::Char('q') | KeyCode::Esc | KeyCode::Backspace => {
-                    self.current_menu = CurrentMenu::Settings(SettingsPage::Main { selected: 1 })
-                }
-                _ => {}
-            },
-            _ => {} // TODO: Implement SettingsPage::Theme
-                    // SettingsPage::Theme { _ } => {
-                    // Theme { selected }
-                    //   Up/Down → move this list's cursor
-                    //   Enter   → apply ALL_THEMES[selected]
-                    //   Esc/q   → back to Main
-                    // }
+            KeyCode::Char('q') | KeyCode::Esc | KeyCode::Backspace => {
+                self.current_menu = CurrentMenu::None
+            }
+            _ => {}
+        }
+    }
+
+    fn on_fps_page(&mut self, key_event: KeyEvent) {
+        match key_event.code {
+            KeyCode::Down => self.settings.fps = self.settings.fps.saturating_sub(1).clamp(1, 60),
+            KeyCode::Up => self.settings.fps = self.settings.fps.saturating_add(1).clamp(1, 60),
+            KeyCode::Char('q') | KeyCode::Esc | KeyCode::Backspace => {
+                self.current_menu = CurrentMenu::Settings(SettingsPage::Main { selected: 0 })
+            }
+            _ => {}
+        }
+    }
+
+    fn on_theme_page(&mut self, key_event: KeyEvent, selected: usize) {
+        match key_event.code {
+            KeyCode::Down => {
+                self.current_menu = CurrentMenu::Settings(SettingsPage::Theme {
+                    selected: selected.saturating_add(1).clamp(0, ThemeName::count()),
+                })
+            }
+            KeyCode::Up => {
+                self.current_menu = CurrentMenu::Settings(SettingsPage::Theme {
+                    selected: selected.saturating_sub(1).clamp(0, ThemeName::count()),
+                })
+            }
+            KeyCode::Enter => self.settings.theme = ThemeName::by_index(selected),
+            KeyCode::Char('q') | KeyCode::Esc | KeyCode::Backspace => {
+                self.current_menu = CurrentMenu::Settings(SettingsPage::Main { selected: 1 })
+            }
+            _ => {}
+        }
+    }
+
+    fn on_patterns_page(&mut self, key_event: KeyEvent, selected: usize) {
+        match key_event.code {
+            KeyCode::Down => {
+                self.current_menu = CurrentMenu::Settings(SettingsPage::Pattern {
+                    selected: selected.saturating_add(1).clamp(0, PatternName::count()),
+                })
+            }
+            KeyCode::Up => {
+                self.current_menu = CurrentMenu::Settings(SettingsPage::Pattern {
+                    selected: selected.saturating_sub(1).clamp(0, PatternName::count()),
+                })
+            }
+            KeyCode::Enter => self.settings.pattern = PatternName::by_index(selected),
+            KeyCode::Char('q') | KeyCode::Esc | KeyCode::Backspace => {
+                self.current_menu = CurrentMenu::Settings(SettingsPage::Main { selected: 1 })
+            }
+            _ => {}
         }
     }
 
