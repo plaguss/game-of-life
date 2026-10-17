@@ -5,10 +5,11 @@ use ratatui::{
     text::{Line, Span},
     widgets::{Block, Clear, List, ListState, Paragraph},
 };
+use strum::IntoEnumIterator;
 
-use crate::app::Settings;
 use crate::grid::Grid;
-use crate::theme::{ALL_THEMES, Theme};
+use crate::settings::Settings;
+use crate::theme::{Theme, ThemeName};
 
 pub fn render(frame: &mut Frame<'_>, grid: &Grid, theme: &Theme) {
     let areas = layout_areas(frame.area());
@@ -314,7 +315,7 @@ pub fn render_fps_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings) {
 pub fn render_theme_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings, selected: usize) {
     let [_, popup_area, _] = Layout::vertical([
         Constraint::Min(0),
-        Constraint::Length(ALL_THEMES.len() as u16 + 2), // As much items as themes available + 2 spaces
+        Constraint::Length(ThemeName::count() as u16 + 2), // As much items as themes available + 2 spaces
         Constraint::Min(0),
     ])
     .areas(area);
@@ -337,12 +338,13 @@ pub fn render_theme_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings,
     frame.render_widget(Clear, popup_area);
 
     let mut list_state = ListState::default().with_selected(Some(selected));
+
     render_list(
         frame,
         popup_area,
         &theme,
         theme_block,
-        ALL_THEMES.iter().map(|t| t.to_string()),
+        ThemeName::iter().map(|t| t.to_string()),
         &mut list_state,
     );
 }

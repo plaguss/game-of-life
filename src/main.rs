@@ -15,11 +15,13 @@ mod patterns;
 mod rules;
 mod theme;
 mod ui;
+mod settings;
 
 use crate::grid::Grid;
 use crate::{
-    app::{App, Settings},
+    app::App,
     rules::Rules,
+    settings::Settings
 };
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -32,7 +34,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     let rules = Rules::game_of_life();
-    // let pattern = Pattern::from_name("Glider")?;
     let settings = Settings::default();
 
     // TODO: move this logic internally, and resize automatically, not after creating the grid

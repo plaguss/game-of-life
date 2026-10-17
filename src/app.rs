@@ -5,11 +5,11 @@ use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::layout::Rect;
 use ratatui::{DefaultTerminal, Frame};
 
-use crate::patterns::{ALL_PATTERNS, Pattern, PatternName};
-use crate::rules::Rules;
 use crate::{
     grid::Grid,
-    theme::{ALL_THEMES, Theme, ThemeName},
+    rules::Rules,
+    settings::Settings,
+    theme::ThemeName,    
     ui,
 };
 
@@ -34,37 +34,6 @@ pub enum SettingsPage {
     Theme { selected: usize }, // TODO: Needs the patterns too
 }
 
-#[derive(Clone, Debug)]
-pub struct Settings {
-    pub theme: ThemeName,
-    pub fps: u8,
-    pub pattern: PatternName,
-}
-
-/// Builds a elements on demand, fresh and from the corresponding names.
-/// This keeps the settings lightweight to move around
-impl Settings {
-    pub fn default() -> Self {
-        Self {
-            theme: ThemeName::Matrix,
-            fps: 12,
-            pattern: PatternName::Rpentomino,
-        }
-    }
-
-    pub fn get_theme(&self) -> Theme {
-        Theme::from(self.theme)
-    }
-
-    pub fn get_pattern(&self) -> Pattern {
-        Pattern::from(self.pattern)
-    }
-
-    /// The tick interval actually translates the FPS to how often to update the app.
-    pub fn tick_interval(&self) -> Duration {
-        Duration::from_secs_f64(1.0 / f64::from(self.fps.max(1)))
-    }
-}
 
 pub struct App {
     grid: Grid,
@@ -226,15 +195,15 @@ impl App {
             SettingsPage::Theme { selected } => match key_event.code {
                 KeyCode::Down => {
                     self.current_menu = CurrentMenu::Settings(SettingsPage::Theme {
-                        selected: selected.saturating_add(1).clamp(0, ALL_THEMES.len()),
+                        selected: selected.saturating_add(1).clamp(0, ThemeName::count()),
                     })
                 }
                 KeyCode::Up => {
                     self.current_menu = CurrentMenu::Settings(SettingsPage::Theme {
-                        selected: selected.saturating_sub(1).clamp(0, ALL_THEMES.len()),
+                        selected: selected.saturating_sub(1).clamp(0, ThemeName::count()),
                     })
                 }
-                KeyCode::Enter => self.settings.theme = ALL_THEMES[selected],
+                KeyCode::Enter => self.settings.theme = ThemeName::by_index(selected),
                 KeyCode::Char('q') | KeyCode::Esc | KeyCode::Backspace => {
                     self.current_menu = CurrentMenu::Settings(SettingsPage::Main { selected: 1 })
                 }

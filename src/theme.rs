@@ -1,41 +1,29 @@
-use std::error::Error;
 use std::fmt;
 
 use ratatui::style::{Color, Style};
+use strum::{EnumIter, IntoEnumIterator};
 
-#[derive(Debug)]
-pub struct ThemeError(String);
-
-impl fmt::Display for ThemeError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let theme_name = &self.0;
-        write!(f, "Theme not available: {theme_name}")
-    }
-}
-
-impl Error for ThemeError {}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, EnumIter)]
 pub enum ThemeName {
-    #[default]
     Matrix,
     Cyberpunk,
     RetroAmber,
     Ocean,
     Synthwave,
+    #[default]
     Nord,
-    Og,
+    BlackAndWhite,
 }
 
-pub const ALL_THEMES: [ThemeName; 7] = [
-    ThemeName::Matrix,
-    ThemeName::Cyberpunk,
-    ThemeName::RetroAmber,
-    ThemeName::Ocean,
-    ThemeName::Synthwave,
-    ThemeName::Nord,
-    ThemeName::Og,
-];
+impl ThemeName {
+    pub fn count() -> usize {
+        Self::iter().len()
+    }
+
+    pub fn by_index(n: usize) -> ThemeName {
+        Self::iter().nth(n.clamp(0, Self::count() - 1)).unwrap()
+    }
+}
 
 impl fmt::Display for ThemeName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -46,7 +34,7 @@ impl fmt::Display for ThemeName {
             ThemeName::Ocean => write!(f, "Ocean"),
             ThemeName::Synthwave => write!(f, "Synthwave"),
             ThemeName::Nord => write!(f, "Nord"),
-            ThemeName::Og => write!(f, "Og"),
+            ThemeName::BlackAndWhite => write!(f, "Black and white"),
         }
     }
 }
@@ -80,10 +68,6 @@ impl Theme {
         }
     }
 
-    pub fn default() -> Self {
-        Self::matrix()
-    }
-
     pub fn from(theme_name: ThemeName) -> Self {
         match theme_name {
             ThemeName::Matrix => Theme::matrix(),
@@ -92,21 +76,7 @@ impl Theme {
             ThemeName::Ocean => Theme::ocean(),
             ThemeName::Synthwave => Theme::synthwave(),
             ThemeName::Nord => Theme::nord(),
-            ThemeName::Og => Theme::og(),
-        }
-    }
-
-    /// Helper method to require themes from the UI.
-    pub fn from_name(name: &str) -> Result<Self, ThemeError> {
-        match name {
-            "matrix" => Ok(Theme::matrix()),
-            "cyberpunk" => Ok(Theme::cyberpunk()),
-            "retro_amber" => Ok(Theme::retro_amber()),
-            "ocean" => Ok(Theme::ocean()),
-            "synthwave" => Ok(Theme::synthwave()),
-            "nord" => Ok(Theme::nord()),
-            "og" => Ok(Theme::og()),
-            _ => Err(ThemeError(name.to_string())),
+            ThemeName::BlackAndWhite => Theme::og(),
         }
     }
 
@@ -214,5 +184,24 @@ impl Theme {
                 .bg(Color::Rgb(245, 245, 245)), // Pure Black
             dead_cell: Style::default().bg(Color::Rgb(245, 245, 245)),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ensure_themes_dont_overflow() {
+        // Grab first, last, and above the last
+        assert_eq!(ThemeName::by_index(0), ThemeName::Matrix);
+        assert_eq!(
+            ThemeName::by_index(ThemeName::count() - 1),
+            ThemeName::BlackAndWhite
+        );
+        assert_eq!(
+            ThemeName::by_index(ThemeName::count()),
+            ThemeName::BlackAndWhite
+        );
     }
 }

@@ -1,6 +1,8 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 
+use strum::{EnumIter, IntoEnumIterator};
+
 pub type AliveCells = HashSet<(i32, i32)>;
 
 #[derive(Debug, Clone)]
@@ -17,7 +19,7 @@ impl fmt::Display for PatternError {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, EnumIter)]
 pub enum PatternName {
     Blinker,
     Toad,
@@ -31,18 +33,15 @@ pub enum PatternName {
     Bunnies,
 }
 
-// TODO: Nothing ensures completeness here, it should be validated in some form, the same applies to the themes
-pub const ALL_PATTERNS: [PatternName; 9] = [
-    PatternName::Blinker,
-    PatternName::Toad,
-    PatternName::Beacon,
-    PatternName::Rpentomino,
-    PatternName::Pulsar,
-    PatternName::PentaDecathlon,
-    PatternName::Glider,
-    PatternName::GliderGun,
-    PatternName::Bunnies,
-];
+impl PatternName {
+    pub fn count() -> usize {
+        Self::iter().len()
+    }
+
+    pub fn by_index(n: usize) -> PatternName {
+        Self::iter().nth(n.clamp(0, Self::count() - 1)).unwrap()
+    }
+}
 
 impl fmt::Display for PatternName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
