@@ -17,6 +17,7 @@ pub enum PatternName {
     Glider,
     GliderGun,
     Bunnies,
+    RandomSoup
 }
 
 impl PatternName {
@@ -41,9 +42,11 @@ impl fmt::Display for PatternName {
             PatternName::Glider => write!(f, "Glider"),
             PatternName::GliderGun => write!(f, "Glider Gun"),
             PatternName::Bunnies => write!(f, "Bunnies"),
+            PatternName::RandomSoup => write!(f, "Random Soup")
         }
     }
 }
+
 
 /// Pattern to start running the game of life in the board.
 ///
@@ -51,17 +54,23 @@ impl fmt::Display for PatternName {
 #[derive(Debug, Default, Clone)]
 pub struct Pattern {
     /// Name of the pattern
-    name: PatternName,
+    pub name: PatternName,
     /// Position of the alive cells in the grid
     pub alive_cells: AliveCells,
+    /// Probability of a cell being alive when a random soup pattern is selected
+    pub density: f32
 }
 
 impl Pattern {
     pub fn new(name: PatternName, alive_cells: AliveCells) -> Self {
-        Self { name, alive_cells }
+        Self { name, alive_cells, density: 0.3 }
     }
 
     pub fn from(pattern_name: PatternName) -> Self {
+        if pattern_name.eq(&PatternName::RandomSoup) {
+            return Self::random_soup(0.3);
+        }
+
         let available_cells = available_patterns();
 
         let alive_cells = available_cells
@@ -74,8 +83,16 @@ impl Pattern {
         Self::new(pattern_name, alive_cells)
     }
 
+    /// Special type of pattern that determines the alive cells based on a density pattern.
+    /// Sets a cell to alive with a given probability. For this pattern to work
+    /// we need grid size, and we don't know about it on creation time, so we just
+    /// use a predetermined density.
+    /// 
+    /// Note: For the moment it won't be configurable by the app.
+    pub fn random_soup(density: f32) -> Self {
+        Self { name: PatternName::RandomSoup, alive_cells: HashSet::new(), density }
+    }
 }
-
 
 pub fn available_patterns() -> HashMap<PatternName, &'static [(i32, i32)]> {
     let mut patterns: HashMap<PatternName, &'static [(i32, i32)]> = HashMap::new();
@@ -251,6 +268,9 @@ mod tests {
     fn from_loads_expected_pattern() {
         let available = available_patterns();
         for pattern_name in PatternName::iter() {
+            if pattern_name.eq(&PatternName::RandomSoup) {
+                continue;
+            }
             let pattern = Pattern::from(pattern_name);
             assert_eq!(pattern.name, pattern_name);
             assert_eq!(

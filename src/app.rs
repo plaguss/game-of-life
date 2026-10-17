@@ -255,8 +255,17 @@ impl App {
 
     /// This method should be called on startup, and whenever a change to the grid is applied
     fn reset_grid(&mut self) {
-        self.grid = Grid::new(self.settings.get_pattern(), Rules::game_of_life());
+        let pattern = self.settings.get_pattern();
+        self.grid = Grid::new(pattern.clone(), Rules::game_of_life());
         self.fit_grid();
+        // It's not the best approach to deal with the RandomSoup, but
+        // gets the job done for the moment.
+        match pattern.name {
+            PatternName::RandomSoup => {
+                self.grid.build_random_soup(pattern.density);
+            }
+            _ => {} // Do nothing
+        }
         self.grid.center_alive_cells();
     }
 

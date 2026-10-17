@@ -3,6 +3,8 @@ use std::collections::{HashMap, HashSet};
 use crate::patterns::{AliveCells, Pattern};
 use crate::rules::Rules;
 
+use rand::RngExt;
+
 fn get_num_neighbours(
     alive_cells: &AliveCells,
     height: i32,
@@ -82,6 +84,23 @@ impl Grid {
     /// Stage of the evolution. Increments on each call to evolve.
     pub fn generation(&self) -> u32 {
         self.step
+    }
+
+    pub fn build_random_soup(&mut self, density: f32) {
+        // For the moment let's assume the Pattern::RandomSoup is given...
+        let mut rng = rand::rng();
+        self.alive_cells = HashSet::new();
+
+        for r in 0..self.height {
+            for c in 0..self.width {
+                let p: f32 = rng.random();
+                if p < density {
+                    self.alive_cells.insert((r, c));
+                } else {
+                    continue;
+                }
+            }
+        }
     }
 
     /// Resizes the board and recenters the cells within the space when the board
