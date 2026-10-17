@@ -5,21 +5,7 @@ use strum::{EnumIter, IntoEnumIterator};
 
 pub type AliveCells = HashSet<(i32, i32)>;
 
-#[derive(Debug, Clone)]
-pub struct PatternError {
-    name: String,
-}
-
-impl std::error::Error for PatternError {}
-
-impl fmt::Display for PatternError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let name = &self.name;
-        write!(f, "Invalid pattern '{name}'")
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, EnumIter)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, EnumIter, Hash)]
 pub enum PatternName {
     Blinker,
     Toad,
@@ -59,60 +45,54 @@ impl fmt::Display for PatternName {
     }
 }
 
+/// Pattern to start running the game of life in the board.
+///
+/// Note: The patterns by construction only available if prepared at `available_patterns` first.
 #[derive(Debug, Default, Clone)]
 pub struct Pattern {
     /// Name of the pattern
-    name: &'static str,
+    name: PatternName,
     /// Position of the alive cells in the grid
     pub alive_cells: AliveCells,
 }
 
 impl Pattern {
-    pub fn new(name: &'static str, alive_cells: AliveCells) -> Self {
+    pub fn new(name: PatternName, alive_cells: AliveCells) -> Self {
         Self { name, alive_cells }
     }
 
-    pub fn default() -> Self {
-        Self::from(PatternName::Rpentomino)
-    }
-
     pub fn from(pattern_name: PatternName) -> Self {
-        match pattern_name {
-            PatternName::Blinker => Self::from_name("Blinker").unwrap(),
-            PatternName::Toad => Self::from_name("Toad").unwrap(),
-            PatternName::Beacon => Self::from_name("Beacon").unwrap(),
-            PatternName::Rpentomino => Self::from_name("R-pentomino").unwrap(),
-            PatternName::Pulsar => Self::from_name("Pulsar").unwrap(),
-            PatternName::PentaDecathlon => Self::from_name("PentaDecathlon").unwrap(),
-            PatternName::Glider => Self::from_name("Glider").unwrap(),
-            PatternName::GliderGun => Self::from_name("GliderGun").unwrap(),
-            PatternName::Bunnies => Self::from_name("Bunnies").unwrap(),
-        }
-    }
-
-    pub fn from_name(name: &'static str) -> Result<Self, PatternError> {
         let available_cells = available_patterns();
-        let alive_cells = available_cells.get(name).ok_or_else(|| PatternError {
-            name: name.to_string(),
-        })?;
 
-        Ok(Self {
-            name,
-            alive_cells: alive_cells.iter().copied().collect(),
-        })
+        let alive_cells = available_cells
+            .get(&pattern_name)
+            .unwrap()
+            .iter()
+            .copied()
+            .collect();
+
+        Self::new(pattern_name, alive_cells)
     }
+
 }
 
-pub fn available_patterns() -> HashMap<&'static str, &'static [(i32, i32)]> {
-    let mut patterns: HashMap<&'static str, &'static [(i32, i32)]> = HashMap::new();
 
-    patterns.insert("Blinker", &[(2, 1), (2, 2), (2, 3)]);
-    patterns.insert("Toad", &[(2, 2), (2, 3), (2, 4), (3, 1), (3, 2), (3, 3)]);
+pub fn available_patterns() -> HashMap<PatternName, &'static [(i32, i32)]> {
+    let mut patterns: HashMap<PatternName, &'static [(i32, i32)]> = HashMap::new();
 
-    patterns.insert("Beacon", &[(1, 1), (1, 2), (2, 1), (4, 3), (4, 4), (3, 4)]);
+    patterns.insert(PatternName::Blinker, &[(2, 1), (2, 2), (2, 3)]);
+    patterns.insert(
+        PatternName::Toad,
+        &[(2, 2), (2, 3), (2, 4), (3, 1), (3, 2), (3, 3)],
+    );
 
     patterns.insert(
-        "Pulsar",
+        PatternName::Beacon,
+        &[(1, 1), (1, 2), (2, 1), (4, 3), (4, 4), (3, 4)],
+    );
+
+    patterns.insert(
+        PatternName::Pulsar,
         &[
             (2, 4),
             (2, 5),
@@ -166,7 +146,7 @@ pub fn available_patterns() -> HashMap<&'static str, &'static [(i32, i32)]> {
     );
 
     patterns.insert(
-        "Penta Decathlon",
+        PatternName::PentaDecathlon,
         &[
             (5, 4),
             (6, 4),
@@ -193,10 +173,13 @@ pub fn available_patterns() -> HashMap<&'static str, &'static [(i32, i32)]> {
         ],
     );
 
-    patterns.insert("Glider", &[(0, 2), (1, 0), (1, 2), (2, 1), (2, 2)]);
+    patterns.insert(
+        PatternName::Glider,
+        &[(0, 2), (1, 0), (1, 2), (2, 1), (2, 2)],
+    );
 
     patterns.insert(
-        "Glider Gun",
+        PatternName::GliderGun,
         &[
             (0, 24),
             (1, 22),
@@ -238,7 +221,7 @@ pub fn available_patterns() -> HashMap<&'static str, &'static [(i32, i32)]> {
     );
 
     patterns.insert(
-        "Bunnies",
+        PatternName::Bunnies,
         &[
             (10, 10),
             (10, 16),
@@ -252,7 +235,10 @@ pub fn available_patterns() -> HashMap<&'static str, &'static [(i32, i32)]> {
         ],
     );
 
-    patterns.insert("R-pentomino", &[(0, 1), (0, 2), (1, 0), (1, 1), (2, 1)]);
+    patterns.insert(
+        PatternName::Rpentomino,
+        &[(0, 1), (0, 2), (1, 0), (1, 1), (2, 1)],
+    );
 
     patterns
 }
@@ -262,26 +248,20 @@ mod tests {
     use super::*;
 
     #[test]
-    fn new_stores_name_and_cells() {
-        let cells = HashSet::from([(0, 0), (1, 1)]);
-        let pattern = Pattern::new("Custom", cells.clone());
-
-        assert_eq!(pattern.name, "Custom");
-        assert_eq!(pattern.alive_cells, cells);
-    }
-
-    #[test]
-    fn from_name_loads_known_pattern() {
-        let pattern = Pattern::from_name("Blinker").unwrap();
-
-        assert_eq!(pattern.name, "Blinker");
-        assert_eq!(pattern.alive_cells, HashSet::from([(2, 1), (2, 2), (2, 3)]));
-    }
-
-    #[test]
-    fn from_name_rejects_unknown_pattern() {
-        let error = Pattern::from_name("Unknown").unwrap_err();
-
-        assert_eq!(error.to_string(), "Invalid pattern 'Unknown'");
+    fn from_loads_expected_pattern() {
+        let available = available_patterns();
+        for pattern_name in PatternName::iter() {
+            let pattern = Pattern::from(pattern_name);
+            assert_eq!(pattern.name, pattern_name);
+            assert_eq!(
+                pattern.alive_cells,
+                available
+                    .get(&pattern_name)
+                    .unwrap()
+                    .iter()
+                    .copied()
+                    .collect()
+            );
+        }
     }
 }

@@ -162,21 +162,21 @@ impl Grid {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::patterns::PatternName;
 
     #[test]
-    fn new_stores_initial_cells() {
-        let cells = HashSet::from([(0, 0), (1, 1)]);
-        let grid = Grid::new(Pattern::new("Custom", cells.clone()), Rules::game_of_life());
+    fn new_stores_pattern_cells() {
+        let grid = Grid::new(Pattern::from(PatternName::Glider), Rules::game_of_life());
 
-        assert_eq!(grid.get_alive_cells(), &cells);
+        assert_eq!(
+            grid.get_alive_cells(),
+            &HashSet::from([(0, 2), (1, 0), (1, 2), (2, 1), (2, 2)])
+        );
     }
 
     #[test]
     fn resize_uses_logical_grid_dimensions_and_enforces_minimum() {
-        let mut grid = Grid::new(
-            Pattern::new("Custom", HashSet::new()),
-            Rules::game_of_life(),
-        );
+        let mut grid = Grid::new(Pattern::from(PatternName::Blinker), Rules::game_of_life());
 
         grid.resize(53, 79);
         assert_eq!((grid.height(), grid.width()), (53, 79));
@@ -197,49 +197,42 @@ mod tests {
     }
 
     #[test]
-    fn empty_and_isolated_cells_evolve_to_empty() {
-        for cells in [HashSet::new(), HashSet::from([(0, 0)])] {
-            let mut grid = Grid::new(Pattern::new("Custom", cells), Rules::game_of_life());
+    fn pattern_dies_out_without_birth_or_survival_rules() {
+        let mut grid = Grid::new(Pattern::from(PatternName::Blinker), Rules::new(&[], &[]));
 
-            grid.evolve();
+        grid.evolve();
 
-            assert!(grid.get_alive_cells().is_empty());
-        }
+        assert!(grid.get_alive_cells().is_empty());
     }
 
     #[test]
     fn blinker_returns_to_initial_state_after_two_steps() {
-        let initial = HashSet::from([(0, -1), (0, 0), (0, 1)]);
-        let mut grid = Grid::new(
-            Pattern::new("Blinker", initial.clone()),
-            Rules::game_of_life(),
-        );
+        let mut grid = Grid::new(Pattern::from(PatternName::Blinker), Rules::game_of_life());
+
+        let initial = grid.get_alive_cells().clone();
 
         grid.evolve();
         assert_eq!(
             grid.get_alive_cells(),
-            &HashSet::from([(39, 0), (0, 0), (1, 0)])
+            &HashSet::from([(1, 2), (2, 2), (3, 2)])
         );
 
         grid.evolve();
-        assert_eq!(
-            grid.get_alive_cells(),
-            &HashSet::from([(0, 39), (0, 0), (0, 1)])
-        );
+        assert_eq!(grid.get_alive_cells(), &initial);
     }
 
     #[test]
     fn evolve_uses_custom_birth_and_survival_rules() {
-        let mut grid = Grid::new(
-            Pattern::new("Custom", HashSet::from([(0, 0), (0, 1)])),
-            Rules::new(&[2], &[1]),
-        );
+        let mut grid = Grid::new(Pattern::from(PatternName::Blinker), Rules::new(&[2], &[1]));
 
         grid.evolve();
 
+        // Blinker cells (2, 1), (2, 2), (2, 3): the middle cell dies (2 neighbours),
+        // the ends survive (1 neighbour), and the dead cells above and below
+        // the middle are born (2 neighbours).
         assert_eq!(
             grid.get_alive_cells(),
-            &HashSet::from([(0, 0), (0, 1), (39, 0), (39, 1), (1, 0), (1, 1),])
+            &HashSet::from([(2, 1), (2, 3), (1, 1), (1, 3), (3, 1), (3, 3)])
         );
     }
 }

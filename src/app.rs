@@ -172,7 +172,9 @@ impl App {
             KeyCode::Enter => match selected {
                 0 => self.current_menu = CurrentMenu::Settings(SettingsPage::Fps),
                 1 => self.current_menu = CurrentMenu::Settings(SettingsPage::Theme { selected: 0 }),
-                2 => self.current_menu = CurrentMenu::Settings(SettingsPage::Pattern { selected: 0 }),
+                2 => {
+                    self.current_menu = CurrentMenu::Settings(SettingsPage::Pattern { selected: 0 })
+                }
                 // Should open Theme here, and then pattern, with the index in the
                 //place of the theme list not implemented
                 _ => {}
@@ -227,7 +229,10 @@ impl App {
                     selected: selected.saturating_sub(1).clamp(0, PatternName::count()),
                 })
             }
-            KeyCode::Enter => self.settings.pattern = PatternName::by_index(selected),
+            KeyCode::Enter => {
+                self.settings.pattern = PatternName::by_index(selected);
+                self.reset_grid();
+            }
             KeyCode::Char('q') | KeyCode::Esc | KeyCode::Backspace => {
                 self.current_menu = CurrentMenu::Settings(SettingsPage::Main { selected: 1 })
             }
