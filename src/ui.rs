@@ -7,10 +7,10 @@ use ratatui::{
 };
 use strum::IntoEnumIterator;
 
-use crate::patterns::{Pattern, PatternName};
+use crate::patterns::PatternName;
 use crate::settings::Settings;
 use crate::theme::{Theme, ThemeName};
-use crate::{grid::Grid, patterns, theme};
+use crate::grid::Grid;
 
 pub fn render(frame: &mut Frame<'_>, grid: &Grid, theme: &Theme) {
     let areas = layout_areas(frame.area());
