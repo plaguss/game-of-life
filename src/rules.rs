@@ -1,4 +1,35 @@
+use core::fmt;
 use std::collections::HashSet;
+
+use strum::{EnumIter, IntoEnumIterator};
+
+/// Available rules to evolve the alive cells. For the moment, just a couple
+/// are available, instead of having more freedom to provide your own
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, EnumIter)]
+pub enum RuleName {
+    #[default]
+    GameOfLife,
+    Highlife
+}
+
+impl RuleName {
+    pub fn count() -> usize {
+        Self::iter().len()
+    }
+
+    pub fn by_index(n: usize) -> RuleName {
+        Self::iter().nth(n.clamp(0, Self::count() - 1)).unwrap()
+    }
+}
+
+impl fmt::Display for RuleName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RuleName::GameOfLife => write!(f, "Game Of Life"),
+            RuleName::Highlife => write!(f, "Highlife"),
+        }        
+    }
+}
 
 /// TODO: Allow having a more general set, and generate from parsing the string rules
 ///
@@ -8,16 +39,23 @@ use std::collections::HashSet;
 /// B3/S23: Original Game of Life
 /// B36/S23: Highlife (https://en.wikipedia.org/wiki/Highlife_(cellular_automaton))
 #[derive(Debug, Clone)]
-pub struct Rules {
+pub struct Rule {
     pub birth: HashSet<u8>,
     pub survival: HashSet<u8>,
 }
 
-impl Rules {
+impl Rule {
     pub fn new(birth: &[u8], survival: &[u8]) -> Self {
         Self {
             birth: HashSet::from_iter(birth.iter().cloned()),
             survival: HashSet::from_iter(survival.iter().cloned()),
+        }
+    }
+
+    pub fn from(name: RuleName) -> Self {
+        match name {
+            RuleName::GameOfLife => Self::game_of_life(),
+            RuleName::Highlife => Self::highlife(),
         }
     }
 
@@ -38,7 +76,7 @@ mod tests {
 
     #[test]
     fn new_stores_rules_and_removes_duplicates() {
-        let rules = Rules::new(&[1, 3, 3], &[2, 4, 4]);
+        let rules = Rule::new(&[1, 3, 3], &[2, 4, 4]);
 
         assert_eq!(rules.birth, HashSet::from([1, 3]));
         assert_eq!(rules.survival, HashSet::from([2, 4]));
@@ -46,7 +84,7 @@ mod tests {
 
     #[test]
     fn new_accepts_empty_rules() {
-        let rules = Rules::new(&[], &[]);
+        let rules = Rule::new(&[], &[]);
 
         assert!(rules.birth.is_empty());
         assert!(rules.survival.is_empty());
@@ -54,7 +92,7 @@ mod tests {
 
     #[test]
     fn game_of_life_uses_b3_s23() {
-        let rules = Rules::game_of_life();
+        let rules = Rule::game_of_life();
 
         assert_eq!(rules.birth, HashSet::from([3]));
         assert_eq!(rules.survival, HashSet::from([2, 3]));
@@ -62,7 +100,7 @@ mod tests {
 
     #[test]
     fn highlife_uses_b36_s23() {
-        let rules = Rules::highlife();
+        let rules = Rule::highlife();
 
         assert_eq!(rules.birth, HashSet::from([3, 6]));
         assert_eq!(rules.survival, HashSet::from([2, 3]));

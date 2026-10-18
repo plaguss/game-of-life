@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::patterns::{AliveCells, Pattern};
-use crate::rules::Rules;
+use crate::rules::Rule;
 
 use rand::RngExt;
 
@@ -40,7 +40,7 @@ fn get_num_neighbours(
 #[derive(Debug, Clone)]
 pub struct Grid {
     alive_cells: AliveCells,
-    rules: Rules,
+    rule: Rule,
     /// Step number. Shouldn't reach such a high number
     /// for this case.
     step: u32,
@@ -52,14 +52,26 @@ pub struct Grid {
 impl Grid {
     pub const MIN_DIMENSION: i32 = 40;
 
-    pub fn new(pattern: Pattern, rules: Rules) -> Self {
-        // TODO: Store the name or something so it can be shown later
+    /// On creation, the alive_cells aren't populated, those come later
+    /// when the pattern is set.
+    pub fn new(rule: Rule) -> Self {
         Self {
-            alive_cells: pattern.alive_cells,
-            rules,
+            alive_cells: HashSet::new(),
+            rule,
             step: 0,
             height: Self::MIN_DIMENSION,
             width: Self::MIN_DIMENSION,
+        }
+    }
+
+    pub fn set_pattern(&mut self, pattern: &Pattern) {
+        match pattern {
+            Pattern::Fixed { name: _, alive_cells } => {
+                self.alive_cells = alive_cells.clone();
+            }
+            Pattern::RandomSoup { density } => {
+                self.build_random_soup(*density);
+            }
         }
     }
 
@@ -86,8 +98,7 @@ impl Grid {
         self.step
     }
 
-    pub fn build_random_soup(&mut self, density: f32) {
-        // For the moment let's assume the Pattern::RandomSoup is given...
+    fn build_random_soup(&mut self, density: f32) {
         let mut rng = rand::rng();
         self.alive_cells = HashSet::new();
 
@@ -163,12 +174,12 @@ impl Grid {
         for (cell, num) in num_neighbors.iter() {
             if self.alive_cells.contains(cell) {
                 // If it's alive
-                if self.rules.survival.contains(num) {
+                if self.rule.survival.contains(num) {
                     next_alive_cells.insert(cell.clone());
                 }
             } else {
                 // If it's dead
-                if self.rules.birth.contains(num) {
+                if self.rule.birth.contains(num) {
                     next_alive_cells.insert(cell.clone());
                 }
             }
@@ -185,7 +196,8 @@ mod tests {
 
     #[test]
     fn new_stores_pattern_cells() {
-        let grid = Grid::new(Pattern::from(PatternName::Glider), Rules::game_of_life());
+        let mut grid = Grid::new(Rule::game_of_life());
+        grid.set_pattern(&Pattern::from(PatternName::Glider));
 
         assert_eq!(
             grid.get_alive_cells(),
@@ -195,7 +207,8 @@ mod tests {
 
     #[test]
     fn resize_uses_logical_grid_dimensions_and_enforces_minimum() {
-        let mut grid = Grid::new(Pattern::from(PatternName::Blinker), Rules::game_of_life());
+        let mut grid = Grid::new(Rule::game_of_life());
+        grid.set_pattern(&Pattern::from(PatternName::Blinker));
 
         grid.resize(53, 79);
         assert_eq!((grid.height(), grid.width()), (53, 79));
@@ -217,7 +230,8 @@ mod tests {
 
     #[test]
     fn pattern_dies_out_without_birth_or_survival_rules() {
-        let mut grid = Grid::new(Pattern::from(PatternName::Blinker), Rules::new(&[], &[]));
+        let mut grid = Grid::new(Rule::new(&[], &[]));
+        grid.set_pattern(&Pattern::from(PatternName::Blinker));
 
         grid.evolve();
 
@@ -226,7 +240,8 @@ mod tests {
 
     #[test]
     fn blinker_returns_to_initial_state_after_two_steps() {
-        let mut grid = Grid::new(Pattern::from(PatternName::Blinker), Rules::game_of_life());
+        let mut grid = Grid::new(Rule::game_of_life());
+        grid.set_pattern(&Pattern::from(PatternName::Blinker));
 
         let initial = grid.get_alive_cells().clone();
 
@@ -242,7 +257,8 @@ mod tests {
 
     #[test]
     fn evolve_uses_custom_birth_and_survival_rules() {
-        let mut grid = Grid::new(Pattern::from(PatternName::Blinker), Rules::new(&[2], &[1]));
+        let mut grid = Grid::new(Rule::new(&[2], &[1]));
+        grid.set_pattern(&Pattern::from(PatternName::Blinker));
 
         grid.evolve();
 

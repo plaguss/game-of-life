@@ -48,24 +48,14 @@ impl fmt::Display for PatternName {
 }
 
 
-/// Pattern to start running the game of life in the board.
-///
-/// Note: The patterns by construction only available if prepared at `available_patterns` first.
-#[derive(Debug, Default, Clone)]
-pub struct Pattern {
-    /// Name of the pattern
-    pub name: PatternName,
-    /// Position of the alive cells in the grid
-    pub alive_cells: AliveCells,
-    /// Probability of a cell being alive when a random soup pattern is selected
-    pub density: f32
+#[derive(Debug, Clone)]
+pub enum Pattern {
+    Fixed { name: PatternName, alive_cells: AliveCells },
+    RandomSoup { density: f32 }
 }
 
 impl Pattern {
-    pub fn new(name: PatternName, alive_cells: AliveCells) -> Self {
-        Self { name, alive_cells, density: 0.3 }
-    }
-
+    /// Creates the recipe for a named pattern
     pub fn from(pattern_name: PatternName) -> Self {
         if pattern_name.eq(&PatternName::RandomSoup) {
             return Self::random_soup(0.3);
@@ -80,7 +70,7 @@ impl Pattern {
             .copied()
             .collect();
 
-        Self::new(pattern_name, alive_cells)
+        Self::Fixed {name: pattern_name, alive_cells}
     }
 
     /// Special type of pattern that determines the alive cells based on a density pattern.
@@ -90,7 +80,7 @@ impl Pattern {
     /// 
     /// Note: For the moment it won't be configurable by the app.
     pub fn random_soup(density: f32) -> Self {
-        Self { name: PatternName::RandomSoup, alive_cells: HashSet::new(), density }
+        Self::RandomSoup { density }
     }
 }
 
@@ -268,20 +258,22 @@ mod tests {
     fn from_loads_expected_pattern() {
         let available = available_patterns();
         for pattern_name in PatternName::iter() {
-            if pattern_name.eq(&PatternName::RandomSoup) {
-                continue;
-            }
             let pattern = Pattern::from(pattern_name);
-            assert_eq!(pattern.name, pattern_name);
-            assert_eq!(
-                pattern.alive_cells,
-                available
-                    .get(&pattern_name)
-                    .unwrap()
-                    .iter()
-                    .copied()
-                    .collect()
-            );
+            match pattern {
+                Pattern::Fixed { name, alive_cells } => {
+                    assert_eq!(name, pattern_name);
+                    assert_eq!(
+                        alive_cells,
+                        available
+                            .get(&pattern_name)
+                            .unwrap()
+                            .iter()
+                            .copied()
+                            .collect()
+                    );
+                },
+                _ => {} // don't check anything for the moment
+            }
         }
     }
 }

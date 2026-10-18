@@ -5,8 +5,9 @@ use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::layout::Rect;
 use ratatui::{DefaultTerminal, Frame};
 
+use crate::rules::RuleName;
 use crate::{
-    grid::Grid, patterns::PatternName, rules::Rules, settings::Settings, theme::ThemeName, ui,
+    grid::Grid, patterns::{PatternName, Pattern}, rules::Rule, settings::Settings, theme::ThemeName, ui,
 };
 
 /// Determines which overlay is open.
@@ -29,6 +30,7 @@ pub enum SettingsPage {
     Fps,
     Theme { selected: usize },
     Pattern { selected: usize },
+    Rule { selected: usize }
 }
 
 pub struct App {
@@ -42,8 +44,10 @@ pub struct App {
 
 impl App {
     pub fn new(settings: Settings) -> Self {
+        let mut grid = Grid::new(settings.get_rule());
+        grid.set_pattern(&settings.get_pattern());
         Self {
-            grid: Grid::new(settings.get_pattern(), Rules::game_of_life()),
+            grid,
             settings,
             current_menu: CurrentMenu::None,
             exit: false,
@@ -108,6 +112,9 @@ impl App {
                 SettingsPage::Pattern { selected } => {
                     ui::render_patterns_menu(frame, area, &self.settings, *selected);
                 }
+                SettingsPage::Rule { selected } => {
+                    ui::render_rule_menu(frame, area, &self.settings, *selected);
+                }
             },
         }
     }
@@ -154,6 +161,7 @@ impl App {
             SettingsPage::Fps => self.on_fps_page(key_event),
             SettingsPage::Theme { selected } => self.on_theme_page(key_event, selected),
             SettingsPage::Pattern { selected } => self.on_patterns_page(key_event, selected),
+            SettingsPage::Rule { selected } => self.on_rules_page(key_event, selected)
         }
     }
 
@@ -161,12 +169,12 @@ impl App {
         match key_event.code {
             KeyCode::Down => {
                 self.current_menu = CurrentMenu::Settings(SettingsPage::Main {
-                    selected: selected.saturating_add(1).clamp(0, 2),
+                    selected: selected.saturating_add(1).clamp(0, 3),
                 })
             }
             KeyCode::Up => {
                 self.current_menu = CurrentMenu::Settings(SettingsPage::Main {
-                    selected: selected.saturating_sub(1).clamp(0, 2),
+                    selected: selected.saturating_sub(1).clamp(0, 3),
                 })
             }
             KeyCode::Enter => match selected {
@@ -174,6 +182,9 @@ impl App {
                 1 => self.current_menu = CurrentMenu::Settings(SettingsPage::Theme { selected: 0 }),
                 2 => {
                     self.current_menu = CurrentMenu::Settings(SettingsPage::Pattern { selected: 0 })
+                }
+                3 => {
+                    self.current_menu = CurrentMenu::Settings(SettingsPage::Rule { selected: 0 })
                 }
                 // Should open Theme here, and then pattern, with the index in the
                 //place of the theme list not implemented
@@ -234,10 +245,34 @@ impl App {
                 self.reset_grid();
             }
             KeyCode::Char('q') | KeyCode::Esc | KeyCode::Backspace => {
-                self.current_menu = CurrentMenu::Settings(SettingsPage::Main { selected: 1 })
+                self.current_menu = CurrentMenu::Settings(SettingsPage::Main { selected: 2 })
             }
             _ => {}
         }
+    }
+
+    fn on_rules_page(&mut self, key_event: KeyEvent, selected: usize) {
+        match key_event.code {
+            KeyCode::Down => {
+                self.current_menu = CurrentMenu::Settings(SettingsPage::Rule { 
+                    selected: selected.saturating_add(1).clamp(0, RuleName::count()),
+                })
+            }
+            KeyCode::Up => {
+                self.current_menu = CurrentMenu::Settings(SettingsPage::Rule {
+                    selected: selected.saturating_sub(1).clamp(0, RuleName::count()),
+                })
+            }
+            KeyCode::Enter => {
+                self.settings.rule = RuleName::by_index(selected);
+                // Don't reset the grid by default, just reuse the new rule
+                // on what its in the board
+            }
+            KeyCode::Char('q') | KeyCode::Esc | KeyCode::Backspace => {
+                self.current_menu = CurrentMenu::Settings(SettingsPage::Main { selected: 3 })
+            }
+            _ => {}
+        }        
     }
 
     fn exit(&mut self) {
@@ -255,18 +290,19 @@ impl App {
 
     /// This method should be called on startup, and whenever a change to the grid is applied
     fn reset_grid(&mut self) {
-        let pattern = self.settings.get_pattern();
-        self.grid = Grid::new(pattern.clone(), Rules::game_of_life());
+        let pattern = &self.settings.get_pattern();
+        self.grid = Grid::new(Rule::game_of_life());
+        // Call fit grid first so that we have the actual size of the grid
+        // if we are creating a random soup
         self.fit_grid();
-        // It's not the best approach to deal with the RandomSoup, but
-        // gets the job done for the moment.
-        match pattern.name {
-            PatternName::RandomSoup => {
-                self.grid.build_random_soup(pattern.density);
+        self.grid.set_pattern(pattern);
+        match pattern {
+            Pattern::Fixed { .. } => {
+                self.grid.center_alive_cells();
             }
-            _ => {} // Do nothing
+            // There's no need to recenter on a RandomSoup
+            _ => {}
         }
-        self.grid.center_alive_cells();
     }
 
     /// The only difference with reset_grid is that this method only calls resize and

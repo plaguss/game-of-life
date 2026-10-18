@@ -18,7 +18,7 @@ mod theme;
 mod ui;
 
 use crate::grid::Grid;
-use crate::{app::App, rules::Rules, settings::Settings};
+use crate::{app::App, settings::Settings};
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Setup terminal
@@ -29,11 +29,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let backend = CrosstermBackend::new(std::io::stdout());
     let mut terminal = Terminal::new(backend)?;
 
-    let rules = Rules::game_of_life();
     let settings = Settings::default();
 
     // TODO: move this logic internally, and resize automatically, not after creating the grid
-    let mut grid = Grid::new(settings.get_pattern(), rules);
+    let mut grid = Grid::new(settings.get_rule());
+    grid.set_pattern(&settings.get_pattern());
     let (height, width) = ui::grid_dimensions_for_terminal(terminal.size()?.into());
     grid.resize(height, width);
 

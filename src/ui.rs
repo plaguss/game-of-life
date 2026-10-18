@@ -7,7 +7,7 @@ use ratatui::{
 };
 use strum::IntoEnumIterator;
 
-use crate::patterns::PatternName;
+use crate::{patterns::PatternName, rules::RuleName};
 use crate::settings::Settings;
 use crate::theme::{Theme, ThemeName};
 use crate::grid::Grid;
@@ -216,7 +216,7 @@ pub fn render_settings_menu(
 ) {
     let [_, popup_area, _] = Layout::vertical([
         Constraint::Min(0),
-        Constraint::Length(5), // 3 items + top and bottom borders
+        Constraint::Length(6), // 4 items + top and bottom borders
         Constraint::Min(0),
     ])
     .areas(area);
@@ -239,6 +239,7 @@ pub fn render_settings_menu(
         format!("FPS: {}", settings.fps),
         format!("Theme: {:?}", settings.theme),
         format!("Pattern: {:?}", settings.pattern),
+        format!("Rule: {:?}", settings.rule),
     ];
 
     let mut list_state = ListState::default().with_selected(Some(selected));
@@ -390,6 +391,48 @@ pub fn render_patterns_menu(
         PatternName::iter().map(|t| t.to_string()),
         &mut list_state,
     );
+}
+
+pub fn render_rule_menu(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    settings: &Settings,
+    selected: usize,
+) {
+    let [_, popup_area, _] = Layout::vertical([
+        Constraint::Min(0),
+        Constraint::Length(RuleName::count() as u16 + 2), // As much items as rules available + 2 spaces
+        Constraint::Min(0),
+    ])
+    .areas(area);
+
+    // Leave some space on either side
+    let [_, popup_area, _] = Layout::horizontal([
+        Constraint::Percentage(40),
+        Constraint::Percentage(20),
+        Constraint::Percentage(40),
+    ])
+    .areas(popup_area);
+
+    let theme = settings.get_theme();
+
+    let pattern_block = Block::bordered()
+        .title(" Settings > Rule ")
+        .style(theme.background)
+        .border_style(theme.accent);
+
+    frame.render_widget(Clear, popup_area);
+
+    let mut list_state = ListState::default().with_selected(Some(selected));
+
+    render_list(
+        frame,
+        popup_area,
+        &theme,
+        pattern_block,
+        RuleName::iter().map(|t| t.to_string()),
+        &mut list_state,
+    );    
 }
 
 // Helper functions to avoid having too little space in the terminal to represent the patterns

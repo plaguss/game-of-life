@@ -2,12 +2,14 @@ use std::time::Duration;
 
 use crate::patterns::{Pattern, PatternName};
 use crate::theme::{Theme, ThemeName};
+use crate::rules::{RuleName, Rule};
 
 #[derive(Clone, Debug)]
 pub struct Settings {
     pub theme: ThemeName,
     pub fps: u8,
     pub pattern: PatternName,
+    pub rule: RuleName
 }
 
 /// Builds a elements on demand, fresh and from the corresponding names.
@@ -18,6 +20,7 @@ impl Settings {
             theme: ThemeName::default(),
             fps: 12,
             pattern: PatternName::default(),
+            rule: RuleName::default()
         }
     }
 
@@ -27,6 +30,10 @@ impl Settings {
 
     pub fn get_pattern(&self) -> Pattern {
         Pattern::from(self.pattern)
+    }
+
+    pub fn get_rule(&self) -> Rule {
+        Rule::from(self.rule)
     }
 
     /// The tick interval actually translates the FPS to how often to update the app.
