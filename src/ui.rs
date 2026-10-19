@@ -1,9 +1,5 @@
 use ratatui::{
-    Frame,
-    layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
-    text::{Line, Span},
-    widgets::{Block, Clear, List, ListState, Paragraph, Wrap},
+    Frame, layout::{Constraint, Direction, Layout, Rect}, style::{Color, Modifier, Style}, text::{Line, Span}, widgets::{Block, Clear, List, ListState, Paragraph, Wrap},
 };
 use strum::IntoEnumIterator;
 
@@ -65,14 +61,14 @@ pub fn startup_banner(frame: &mut Frame<'_>, area: Rect, theme: &Theme) {
         Line::from(vec![
             Span::raw("- "),
             Span::styled("<h>", Style::default().add_modifier(Modifier::BOLD)),
-            Span::raw(": Shows the help menu"),
+            Span::raw(": Shows the help menu."),
         ]),
         Line::from(vec![
             Span::raw("- "),
             Span::styled("<q>", Style::default().add_modifier(Modifier::BOLD)),
             Span::raw(" or "),
             Span::styled("<Esc>", Style::default().add_modifier(Modifier::BOLD)),
-            Span::raw(": Stops and closes the app"),
+            Span::raw(": Stops and closes the app."),
         ]),
     ];
 
@@ -92,7 +88,7 @@ fn layout_areas(area: Rect) -> UiAreas {
         .constraints([
             Constraint::Min(0), // The game area
             // Constraint::Length(1), // Blank space
-            Constraint::Length(3), // The footer panels
+            Constraint::Length(1), // The footer line
         ])
         .areas(area);
 
@@ -146,43 +142,20 @@ fn game(
 }
 
 fn footer(frame: &mut Frame<'_>, area: Rect, theme: &Theme) {
-    let [settings_area, help_area, quit_area] =
-        Layout::horizontal([Constraint::Ratio(1, 3); 3]).areas(area);
-
-    let section = Block::bordered()
-        .style(theme.background)
-        .border_style(theme.accent);
-
-    let settings_line = Line::from(vec![
-        Span::styled("S", Style::default().add_modifier(Modifier::UNDERLINED)),
-        Span::raw("ettings"),
+    let footer_line = Line::from(vec![
+        Span::raw("Keys: "),
+        Span::styled("[S]", Style::default().add_modifier(Modifier::BOLD)),
+        Span::raw(" Settings   |   "),
+        Span::styled("[H]", Style::default().add_modifier(Modifier::BOLD)),
+        Span::raw(" Help   |   "),
+        Span::styled("[Q]", Style::default().add_modifier(Modifier::BOLD)),
+        Span::raw(" Quit"),
     ]);
-    let settings_block = Paragraph::new(settings_line)
+    let footer_paragraph = Paragraph::new(footer_line)
         .style(theme.text)
-        .centered()
-        .block(section.clone());
+        .left_aligned();
 
-    let help_line = Line::from(vec![
-        Span::styled("H", Style::default().add_modifier(Modifier::UNDERLINED)),
-        Span::raw("elp"),
-    ]);
-    let help_block = Paragraph::new(help_line)
-        .style(theme.text)
-        .centered()
-        .block(section.clone());
-
-    let quit_line = Line::from(vec![
-        Span::styled("Q", Style::default().add_modifier(Modifier::UNDERLINED)),
-        Span::raw("uit"),
-    ]);
-    let quit_block = Paragraph::new(quit_line)
-        .style(theme.text)
-        .centered()
-        .block(section);
-
-    frame.render_widget(settings_block, settings_area);
-    frame.render_widget(help_block, help_area);
-    frame.render_widget(quit_block, quit_area);
+    frame.render_widget(footer_paragraph, area);
 }
 
 /// Render one logical column per terminal column and pack two logical rows into
@@ -445,7 +418,7 @@ fn get_submenu_block(title: String, theme: &Theme) -> Block<'static> {
 // Helper functions to avoid having too little space in the terminal to represent the patterns
 
 pub const MIN_TERMINAL_WIDTH: u16 = 42; // Grid::MIN_DIMENSION + 2 border columns
-pub const MIN_TERMINAL_HEIGHT: u16 = 26; // Grid::MIN_DIMENSION / 2 + 6 rows of chrome
+pub const MIN_TERMINAL_HEIGHT: u16 = 24; // Grid::MIN_DIMENSION / 2 + 6 rows of chrome
 
 pub fn is_terminal_big_enough(area: Rect) -> bool {
     area.width >= MIN_TERMINAL_WIDTH && area.height >= MIN_TERMINAL_HEIGHT
@@ -486,8 +459,8 @@ mod tests {
     fn board_area_matches_terminal_layout() {
         let areas = layout_areas(Rect::new(0, 0, 80, 24));
 
-        assert_eq!(areas.board, Rect::new(1, 2, 78, 18));
-        assert_eq!(areas.footer, Rect::new(0, 21, 80, 3));
+        assert_eq!(areas.board, Rect::new(1, 2, 78, 20));
+        assert_eq!(areas.footer, Rect::new(0, 23, 80, 1));
     }
 
     #[test]
@@ -506,7 +479,7 @@ mod tests {
     fn grid_dimensions_grow_with_terminal_area() {
         assert_eq!(
             grid_dimensions_for_terminal(Rect::new(0, 0, 160, 60)),
-            (108, 158)
+            (112, 158)
         );
     }
 
