@@ -7,10 +7,10 @@ use ratatui::{
 };
 use strum::IntoEnumIterator;
 
-use crate::{patterns::PatternName, rules::RuleName};
+use crate::grid::Grid;
 use crate::settings::Settings;
 use crate::theme::{Theme, ThemeName};
-use crate::grid::Grid;
+use crate::{patterns::PatternName, rules::RuleName};
 
 pub fn render(frame: &mut Frame<'_>, grid: &Grid, theme: &Theme) {
     let areas = layout_areas(frame.area());
@@ -28,7 +28,7 @@ pub struct UiAreas {
 }
 
 /// Calculate the game, status, board, and footer areas for a terminal size.
-pub fn layout_areas(area: Rect) -> UiAreas {
+fn layout_areas(area: Rect) -> UiAreas {
     let [game_area, footer_area] = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
@@ -274,27 +274,11 @@ fn render_list(
 /// Settings submenu functions:
 
 pub fn render_fps_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings) {
-    let [_, popup_area, _] = Layout::vertical([
-        Constraint::Min(0),
-        Constraint::Length(3),
-        Constraint::Min(0),
-    ])
-    .areas(area);
-
-    // Leave some space on either side
-    let [_, popup_area, _] = Layout::horizontal([
-        Constraint::Percentage(40),
-        Constraint::Percentage(20),
-        Constraint::Percentage(40),
-    ])
-    .areas(popup_area);
+    let popup_area = get_popup_area(area, 1);
 
     let theme = settings.get_theme();
 
-    let fps_block = Block::bordered()
-        .title(" Settings > FPS ")
-        .style(theme.background)
-        .border_style(theme.accent);
+    let fps_block = get_submenu_block(" Settings > FPS ".to_string(), &theme);
 
     let block_area = fps_block.inner(popup_area);
 
@@ -315,27 +299,11 @@ pub fn render_fps_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings) {
 }
 
 pub fn render_theme_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings, selected: usize) {
-    let [_, popup_area, _] = Layout::vertical([
-        Constraint::Min(0),
-        Constraint::Length(ThemeName::count() as u16 + 2), // As much items as themes available + 2 spaces
-        Constraint::Min(0),
-    ])
-    .areas(area);
-
-    // Leave some space on either side
-    let [_, popup_area, _] = Layout::horizontal([
-        Constraint::Percentage(40),
-        Constraint::Percentage(20),
-        Constraint::Percentage(40),
-    ])
-    .areas(popup_area);
+    let popup_area = get_popup_area(area, ThemeName::count() as u16);
 
     let theme = settings.get_theme();
 
-    let theme_block = Block::bordered()
-        .title(" Settings > Theme ")
-        .style(theme.background)
-        .border_style(theme.accent);
+    let theme_block = get_submenu_block(" Settings > Theme ".to_string(), &theme);
 
     frame.render_widget(Clear, popup_area);
 
@@ -357,27 +325,11 @@ pub fn render_patterns_menu(
     settings: &Settings,
     selected: usize,
 ) {
-    let [_, popup_area, _] = Layout::vertical([
-        Constraint::Min(0),
-        Constraint::Length(PatternName::count() as u16 + 2), // As much items as themes available + 2 spaces
-        Constraint::Min(0),
-    ])
-    .areas(area);
-
-    // Leave some space on either side
-    let [_, popup_area, _] = Layout::horizontal([
-        Constraint::Percentage(40),
-        Constraint::Percentage(20),
-        Constraint::Percentage(40),
-    ])
-    .areas(popup_area);
+    let popup_area = get_popup_area(area, PatternName::count() as u16);
 
     let theme = settings.get_theme();
 
-    let pattern_block = Block::bordered()
-        .title(" Settings > Pattern ")
-        .style(theme.background)
-        .border_style(theme.accent);
+    let pattern_block = get_submenu_block(" Settings > Pattern ".to_string(), &theme);
 
     frame.render_widget(Clear, popup_area);
 
@@ -393,15 +345,32 @@ pub fn render_patterns_menu(
     );
 }
 
-pub fn render_rule_menu(
-    frame: &mut Frame<'_>,
-    area: Rect,
-    settings: &Settings,
-    selected: usize,
-) {
+pub fn render_rule_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings, selected: usize) {
+    let popup_area = get_popup_area(area, RuleName::count() as u16);
+
+    let theme = settings.get_theme();
+
+    let rule_block = get_submenu_block(" Settings > Rule ".to_string(), &theme);
+
+    frame.render_widget(Clear, popup_area);
+
+    let mut list_state = ListState::default().with_selected(Some(selected));
+
+    render_list(
+        frame,
+        popup_area,
+        &theme,
+        rule_block,
+        RuleName::iter().map(|t| t.to_string()),
+        &mut list_state,
+    );
+}
+
+/// Common popop area for the settings options
+fn get_popup_area(area: Rect, item_count: u16) -> Rect {
     let [_, popup_area, _] = Layout::vertical([
         Constraint::Min(0),
-        Constraint::Length(RuleName::count() as u16 + 2), // As much items as rules available + 2 spaces
+        Constraint::Length(item_count + 2), // As much items + 2 spaces
         Constraint::Min(0),
     ])
     .areas(area);
@@ -413,26 +382,15 @@ pub fn render_rule_menu(
         Constraint::Percentage(40),
     ])
     .areas(popup_area);
+    popup_area
+}
 
-    let theme = settings.get_theme();
-
-    let pattern_block = Block::bordered()
-        .title(" Settings > Rule ")
+/// Common block for the submenu blocks
+fn get_submenu_block(title: String, theme: &Theme) -> Block<'static> {
+    Block::bordered()
+        .title(title)
         .style(theme.background)
-        .border_style(theme.accent);
-
-    frame.render_widget(Clear, popup_area);
-
-    let mut list_state = ListState::default().with_selected(Some(selected));
-
-    render_list(
-        frame,
-        popup_area,
-        &theme,
-        pattern_block,
-        RuleName::iter().map(|t| t.to_string()),
-        &mut list_state,
-    );    
+        .border_style(theme.accent)
 }
 
 // Helper functions to avoid having too little space in the terminal to represent the patterns

@@ -66,7 +66,10 @@ impl Grid {
 
     pub fn set_pattern(&mut self, pattern: &Pattern) {
         match pattern {
-            Pattern::Fixed { name: _, alive_cells } => {
+            Pattern::Fixed {
+                name: _,
+                alive_cells,
+            } => {
                 self.alive_cells = alive_cells.clone();
             }
             Pattern::RandomSoup { density } => {

@@ -7,8 +7,20 @@ use ratatui::{DefaultTerminal, Frame};
 
 use crate::rules::RuleName;
 use crate::{
-    grid::Grid, patterns::{PatternName, Pattern}, rules::Rule, settings::Settings, theme::ThemeName, ui,
+    grid::Grid,
+    patterns::{Pattern, PatternName},
+    rules::Rule,
+    settings::Settings,
+    theme::ThemeName,
+    ui,
 };
+
+/// Helper for the wraparound in the menu
+#[derive(Debug, Clone, Copy)]
+enum Direction {
+    Up,
+    Down,
+}
 
 /// Determines which overlay is open.
 /// The main screen is always visible
@@ -30,7 +42,7 @@ pub enum SettingsPage {
     Fps,
     Theme { selected: usize },
     Pattern { selected: usize },
-    Rule { selected: usize }
+    Rule { selected: usize },
 }
 
 pub struct App {
@@ -161,7 +173,7 @@ impl App {
             SettingsPage::Fps => self.on_fps_page(key_event),
             SettingsPage::Theme { selected } => self.on_theme_page(key_event, selected),
             SettingsPage::Pattern { selected } => self.on_patterns_page(key_event, selected),
-            SettingsPage::Rule { selected } => self.on_rules_page(key_event, selected)
+            SettingsPage::Rule { selected } => self.on_rules_page(key_event, selected),
         }
     }
 
@@ -169,12 +181,12 @@ impl App {
         match key_event.code {
             KeyCode::Down => {
                 self.current_menu = CurrentMenu::Settings(SettingsPage::Main {
-                    selected: selected.saturating_add(1).clamp(0, 3),
+                    selected: wraparound_menu(selected, 4, Direction::Down),
                 })
             }
             KeyCode::Up => {
                 self.current_menu = CurrentMenu::Settings(SettingsPage::Main {
-                    selected: selected.saturating_sub(1).clamp(0, 3),
+                    selected: wraparound_menu(selected, 4, Direction::Up),
                 })
             }
             KeyCode::Enter => match selected {
@@ -183,9 +195,7 @@ impl App {
                 2 => {
                     self.current_menu = CurrentMenu::Settings(SettingsPage::Pattern { selected: 0 })
                 }
-                3 => {
-                    self.current_menu = CurrentMenu::Settings(SettingsPage::Rule { selected: 0 })
-                }
+                3 => self.current_menu = CurrentMenu::Settings(SettingsPage::Rule { selected: 0 }),
                 // Should open Theme here, and then pattern, with the index in the
                 //place of the theme list not implemented
                 _ => {}
@@ -212,12 +222,12 @@ impl App {
         match key_event.code {
             KeyCode::Down => {
                 self.current_menu = CurrentMenu::Settings(SettingsPage::Theme {
-                    selected: selected.saturating_add(1).clamp(0, ThemeName::count()),
+                    selected: wraparound_menu(selected, ThemeName::count(), Direction::Down),
                 })
             }
             KeyCode::Up => {
                 self.current_menu = CurrentMenu::Settings(SettingsPage::Theme {
-                    selected: selected.saturating_sub(1).clamp(0, ThemeName::count()),
+                    selected: wraparound_menu(selected, ThemeName::count(), Direction::Up),
                 })
             }
             KeyCode::Enter => self.settings.theme = ThemeName::by_index(selected),
@@ -232,12 +242,12 @@ impl App {
         match key_event.code {
             KeyCode::Down => {
                 self.current_menu = CurrentMenu::Settings(SettingsPage::Pattern {
-                    selected: selected.saturating_add(1).clamp(0, PatternName::count()),
+                    selected: wraparound_menu(selected, PatternName::count(), Direction::Down),
                 })
             }
             KeyCode::Up => {
                 self.current_menu = CurrentMenu::Settings(SettingsPage::Pattern {
-                    selected: selected.saturating_sub(1).clamp(0, PatternName::count()),
+                    selected: wraparound_menu(selected, PatternName::count(), Direction::Up),
                 })
             }
             KeyCode::Enter => {
@@ -254,13 +264,13 @@ impl App {
     fn on_rules_page(&mut self, key_event: KeyEvent, selected: usize) {
         match key_event.code {
             KeyCode::Down => {
-                self.current_menu = CurrentMenu::Settings(SettingsPage::Rule { 
-                    selected: selected.saturating_add(1).clamp(0, RuleName::count()),
+                self.current_menu = CurrentMenu::Settings(SettingsPage::Rule {
+                    selected: wraparound_menu(selected, RuleName::count(), Direction::Down),
                 })
             }
             KeyCode::Up => {
                 self.current_menu = CurrentMenu::Settings(SettingsPage::Rule {
-                    selected: selected.saturating_sub(1).clamp(0, RuleName::count()),
+                    selected: wraparound_menu(selected, RuleName::count(), Direction::Up),
                 })
             }
             KeyCode::Enter => {
@@ -272,7 +282,7 @@ impl App {
                 self.current_menu = CurrentMenu::Settings(SettingsPage::Main { selected: 3 })
             }
             _ => {}
-        }        
+        }
     }
 
     fn exit(&mut self) {
@@ -319,4 +329,24 @@ impl App {
         let (height, width) = ui::grid_dimensions_for_terminal(self.area);
         self.grid.resize(height, width);
     }
+}
+
+/// Helper function to allow the navigation selector to wraparound when overflowing
+fn wraparound_menu(selected_index: usize, menu_count: usize, direction: Direction) -> usize {
+    return match direction {
+        Direction::Down => {
+            if selected_index == menu_count - 1 {
+                0
+            } else {
+                selected_index.saturating_add(1)
+            }
+        }
+        Direction::Up => {
+            if selected_index == 0 {
+                menu_count - 1
+            } else {
+                selected_index.saturating_sub(1)
+            }
+        }
+    };
 }

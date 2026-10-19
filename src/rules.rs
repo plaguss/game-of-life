@@ -9,7 +9,7 @@ use strum::{EnumIter, IntoEnumIterator};
 pub enum RuleName {
     #[default]
     GameOfLife,
-    Highlife
+    Highlife,
 }
 
 impl RuleName {
@@ -27,7 +27,7 @@ impl fmt::Display for RuleName {
         match self {
             RuleName::GameOfLife => write!(f, "Game Of Life"),
             RuleName::Highlife => write!(f, "Highlife"),
-        }        
+        }
     }
 }
 

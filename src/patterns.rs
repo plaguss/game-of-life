@@ -17,7 +17,7 @@ pub enum PatternName {
     Glider,
     GliderGun,
     Bunnies,
-    RandomSoup
+    RandomSoup,
 }
 
 impl PatternName {
@@ -42,16 +42,20 @@ impl fmt::Display for PatternName {
             PatternName::Glider => write!(f, "Glider"),
             PatternName::GliderGun => write!(f, "Glider Gun"),
             PatternName::Bunnies => write!(f, "Bunnies"),
-            PatternName::RandomSoup => write!(f, "Random Soup")
+            PatternName::RandomSoup => write!(f, "Random Soup"),
         }
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub enum Pattern {
-    Fixed { name: PatternName, alive_cells: AliveCells },
-    RandomSoup { density: f32 }
+    Fixed {
+        name: PatternName,
+        alive_cells: AliveCells,
+    },
+    RandomSoup {
+        density: f32,
+    },
 }
 
 impl Pattern {
@@ -70,14 +74,17 @@ impl Pattern {
             .copied()
             .collect();
 
-        Self::Fixed {name: pattern_name, alive_cells}
+        Self::Fixed {
+            name: pattern_name,
+            alive_cells,
+        }
     }
 
     /// Special type of pattern that determines the alive cells based on a density pattern.
     /// Sets a cell to alive with a given probability. For this pattern to work
     /// we need grid size, and we don't know about it on creation time, so we just
     /// use a predetermined density.
-    /// 
+    ///
     /// Note: For the moment it won't be configurable by the app.
     pub fn random_soup(density: f32) -> Self {
         Self::RandomSoup { density }
@@ -271,7 +278,7 @@ mod tests {
                             .copied()
                             .collect()
                     );
-                },
+                }
                 _ => {} // don't check anything for the moment
             }
         }
