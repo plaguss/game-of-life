@@ -101,7 +101,7 @@ impl App {
         let area = frame.area();
 
         if !ui::is_terminal_big_enough(area) {
-            return ui::render_terminal_too_small(frame, area, &self.settings);
+            return ui::terminal_too_small(frame, area, &self.settings);
         }
 
         ui::render(frame, &self.grid, &self.settings.get_theme());
@@ -109,23 +109,23 @@ impl App {
         match &self.current_menu {
             CurrentMenu::None => {}
             CurrentMenu::Help => {
-                ui::render_help_message(frame, area, &self.settings.get_theme());
+                ui::help_message(frame, area, &self.settings.get_theme());
             }
             CurrentMenu::Settings(page) => match page {
                 SettingsPage::Main { selected } => {
-                    ui::render_settings_menu(frame, area, &self.settings, *selected);
+                    ui::settings_menu(frame, area, &self.settings, *selected);
                 }
                 SettingsPage::Fps => {
-                    ui::render_fps_menu(frame, area, &self.settings);
+                    ui::fps_menu(frame, area, &self.settings);
                 }
                 SettingsPage::Theme { selected } => {
-                    ui::render_theme_menu(frame, area, &self.settings, *selected);
+                    ui::theme_menu(frame, area, &self.settings, *selected);
                 }
                 SettingsPage::Pattern { selected } => {
-                    ui::render_patterns_menu(frame, area, &self.settings, *selected);
+                    ui::patterns_menu(frame, area, &self.settings, *selected);
                 }
                 SettingsPage::Rule { selected } => {
-                    ui::render_rule_menu(frame, area, &self.settings, *selected);
+                    ui::rule_menu(frame, area, &self.settings, *selected);
                 }
             },
         }

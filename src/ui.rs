@@ -181,7 +181,7 @@ fn vertical_pair_glyph(top_alive: bool, bottom_alive: bool) -> &'static str {
 
 /// TODO: Draws the help message, here we should explain what each piece does,
 /// how it works, and useful links
-pub fn render_help_message(frame: &mut Frame<'_>, area: Rect, theme: &Theme) {
+pub fn help_message(frame: &mut Frame<'_>, area: Rect, theme: &Theme) {
     // Two text lines plus the top and bottom borders
     let [_, popup_area, _] = Layout::vertical([
         Constraint::Min(0),
@@ -208,7 +208,7 @@ pub fn render_help_message(frame: &mut Frame<'_>, area: Rect, theme: &Theme) {
     frame.render_widget(help_message, popup_area);
 }
 
-pub fn render_settings_menu(
+pub fn settings_menu(
     frame: &mut Frame<'_>,
     area: Rect,
     settings: &Settings,
@@ -273,7 +273,7 @@ fn render_list(
 
 /// Settings submenu functions:
 
-pub fn render_fps_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings) {
+pub fn fps_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings) {
     let popup_area = get_popup_area(area, 1);
 
     let theme = settings.get_theme();
@@ -298,7 +298,7 @@ pub fn render_fps_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings) {
     frame.render_widget(fps_line, block_area);
 }
 
-pub fn render_theme_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings, selected: usize) {
+pub fn theme_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings, selected: usize) {
     let popup_area = get_popup_area(area, ThemeName::count() as u16);
 
     let theme = settings.get_theme();
@@ -319,7 +319,7 @@ pub fn render_theme_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings,
     );
 }
 
-pub fn render_patterns_menu(
+pub fn patterns_menu(
     frame: &mut Frame<'_>,
     area: Rect,
     settings: &Settings,
@@ -345,7 +345,7 @@ pub fn render_patterns_menu(
     );
 }
 
-pub fn render_rule_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings, selected: usize) {
+pub fn rule_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings, selected: usize) {
     let popup_area = get_popup_area(area, RuleName::count() as u16);
 
     let theme = settings.get_theme();
@@ -405,7 +405,7 @@ pub fn is_terminal_big_enough(area: Rect) -> bool {
 // TODO: Add a test here for:
 // layout_areas(Rect::new(0, 0, MIN_TERMINAL_WIDTH, MIN_TERMINAL_HEIGHT)) gives a board of at
 // least Grid::MIN_DIMENSION in both directions will keep the numbers honest.
-pub fn render_terminal_too_small(frame: &mut Frame<'_>, area: Rect, settings: &Settings) {
+pub fn terminal_too_small(frame: &mut Frame<'_>, area: Rect, settings: &Settings) {
     let [_, popup_area, _] = Layout::vertical([
         Constraint::Min(0),
         Constraint::Length(4),
