@@ -87,7 +87,6 @@ fn layout_areas(area: Rect) -> UiAreas {
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Min(0), // The game area
-            // Constraint::Length(1), // Blank space
             Constraint::Length(1), // The footer line
         ])
         .areas(area);
