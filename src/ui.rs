@@ -3,7 +3,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Clear, List, ListState, Paragraph},
+    widgets::{Block, Clear, List, ListState, Paragraph, Wrap},
 };
 use strum::IntoEnumIterator;
 
@@ -15,8 +15,8 @@ use crate::{patterns::PatternName, rules::RuleName};
 pub fn render(frame: &mut Frame<'_>, grid: &Grid, theme: &Theme) {
     let areas = layout_areas(frame.area());
 
-    render_game(frame, areas.game, areas.status, areas.board, grid, theme);
-    render_footer(frame, areas.footer, theme);
+    game(frame, areas.game, areas.status, areas.board, grid, theme);
+    footer(frame, areas.footer, theme);
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -25,6 +25,64 @@ pub struct UiAreas {
     pub status: Rect,
     pub board: Rect,
     pub footer: Rect,
+}
+
+pub fn startup_banner(frame: &mut Frame<'_>, area: Rect, theme: &Theme) {
+    let startup_area = get_popup_area(area, 12, 50);
+
+    let startup_block = get_submenu_block("".to_string(), theme);
+
+    let text = vec![
+        Line::from(vec![Span::styled(
+            "Welcome to the Game of Life simulator",
+            Style::default().add_modifier(Modifier::BOLD),
+        )])
+        .centered(),
+        Line::from(vec![Span::raw("")]),
+        Line::from(vec![Span::raw(
+            "This is simple TUI runs the game of life in your terminal.",
+        )]),
+        Line::from(vec![
+            Span::raw("Once you press <Enter>, the simulation will start, and you"),
+            Span::raw(" can interact ONLY with your keyboard, "),
+            Span::styled(
+                "this message will dissapear",
+                Style::default().add_modifier(Modifier::UNDERLINED),
+            ),
+            Span::raw("."),
+        ]),
+        Line::from(vec![Span::raw("")]),
+        Line::from(vec![
+            Span::raw("- "),
+            Span::styled("<Enter>", Style::default().add_modifier(Modifier::BOLD)),
+            Span::raw(": Starts the game"),
+        ]),
+        Line::from(vec![
+            Span::raw("- "),
+            Span::styled("<s>", Style::default().add_modifier(Modifier::BOLD)),
+            Span::raw(": Show the settings, where you can navigate and modify different options."),
+        ]),
+        Line::from(vec![
+            Span::raw("- "),
+            Span::styled("<h>", Style::default().add_modifier(Modifier::BOLD)),
+            Span::raw(": Shows the help menu"),
+        ]),
+        Line::from(vec![
+            Span::raw("- "),
+            Span::styled("<q>", Style::default().add_modifier(Modifier::BOLD)),
+            Span::raw(" or "),
+            Span::styled("<Esc>", Style::default().add_modifier(Modifier::BOLD)),
+            Span::raw(": Stops and closes the app"),
+        ]),
+    ];
+
+    let startup_message = Paragraph::new(text)
+        .wrap(Wrap { trim: true })
+        .style(theme.text)
+        .block(startup_block);
+
+    frame.render_widget(Clear, startup_area);
+    frame.render_widget(startup_message, startup_area);
 }
 
 /// Calculate the game, status, board, and footer areas for a terminal size.
@@ -61,7 +119,7 @@ pub fn grid_dimensions_for_terminal(area: Rect) -> (i32, i32) {
 }
 
 /// Draw the game border and title
-fn render_game(
+fn game(
     frame: &mut Frame<'_>,
     area: Rect,
     status_area: Rect,
@@ -84,10 +142,10 @@ fn render_game(
 
     frame.render_widget(counter_block, status_area);
 
-    render_board(frame, board_area, grid, theme);
+    board(frame, board_area, grid, theme);
 }
 
-fn render_footer(frame: &mut Frame<'_>, area: Rect, theme: &Theme) {
+fn footer(frame: &mut Frame<'_>, area: Rect, theme: &Theme) {
     let [settings_area, help_area, quit_area] =
         Layout::horizontal([Constraint::Ratio(1, 3); 3]).areas(area);
 
@@ -132,7 +190,7 @@ fn render_footer(frame: &mut Frame<'_>, area: Rect, theme: &Theme) {
 /// blocks represent a live top/bottom cell, respectively. Missing or out-of-
 /// bounds cells are dead, and half blocks use the dead-cell background so their
 /// unfilled half matches the board.
-fn render_board(frame: &mut Frame<'_>, area: Rect, grid: &Grid, theme: &Theme) {
+fn board(frame: &mut Frame<'_>, area: Rect, grid: &Grid, theme: &Theme) {
     let buffer = frame.buffer_mut();
     let alive_cells = grid.get_alive_cells();
     let visible_width = u32::from(area.width).min(grid.width() as u32);
@@ -208,12 +266,7 @@ pub fn help_message(frame: &mut Frame<'_>, area: Rect, theme: &Theme) {
     frame.render_widget(help_message, popup_area);
 }
 
-pub fn settings_menu(
-    frame: &mut Frame<'_>,
-    area: Rect,
-    settings: &Settings,
-    selected: usize,
-) {
+pub fn settings_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings, selected: usize) {
     let [_, popup_area, _] = Layout::vertical([
         Constraint::Min(0),
         Constraint::Length(6), // 4 items + top and bottom borders
@@ -244,7 +297,7 @@ pub fn settings_menu(
 
     let mut list_state = ListState::default().with_selected(Some(selected));
     frame.render_widget(Clear, popup_area);
-    render_list(
+    list(
         frame,
         popup_area,
         theme,
@@ -254,7 +307,7 @@ pub fn settings_menu(
     );
 }
 
-fn render_list(
+fn list(
     frame: &mut Frame<'_>,
     area: Rect,
     theme: &Theme,
@@ -274,7 +327,7 @@ fn render_list(
 /// Settings submenu functions:
 
 pub fn fps_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings) {
-    let popup_area = get_popup_area(area, 1);
+    let popup_area = get_popup_area(area, 1, 20);
 
     let theme = settings.get_theme();
 
@@ -299,7 +352,7 @@ pub fn fps_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings) {
 }
 
 pub fn theme_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings, selected: usize) {
-    let popup_area = get_popup_area(area, ThemeName::count() as u16);
+    let popup_area = get_popup_area(area, ThemeName::count() as u16, 20);
 
     let theme = settings.get_theme();
 
@@ -309,7 +362,7 @@ pub fn theme_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings, select
 
     let mut list_state = ListState::default().with_selected(Some(selected));
 
-    render_list(
+    list(
         frame,
         popup_area,
         &theme,
@@ -319,13 +372,8 @@ pub fn theme_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings, select
     );
 }
 
-pub fn patterns_menu(
-    frame: &mut Frame<'_>,
-    area: Rect,
-    settings: &Settings,
-    selected: usize,
-) {
-    let popup_area = get_popup_area(area, PatternName::count() as u16);
+pub fn patterns_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings, selected: usize) {
+    let popup_area = get_popup_area(area, PatternName::count() as u16, 20);
 
     let theme = settings.get_theme();
 
@@ -335,7 +383,7 @@ pub fn patterns_menu(
 
     let mut list_state = ListState::default().with_selected(Some(selected));
 
-    render_list(
+    list(
         frame,
         popup_area,
         &theme,
@@ -346,7 +394,7 @@ pub fn patterns_menu(
 }
 
 pub fn rule_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings, selected: usize) {
-    let popup_area = get_popup_area(area, RuleName::count() as u16);
+    let popup_area = get_popup_area(area, RuleName::count() as u16, 20);
 
     let theme = settings.get_theme();
 
@@ -356,7 +404,7 @@ pub fn rule_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings, selecte
 
     let mut list_state = ListState::default().with_selected(Some(selected));
 
-    render_list(
+    list(
         frame,
         popup_area,
         &theme,
@@ -367,7 +415,7 @@ pub fn rule_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings, selecte
 }
 
 /// Common popop area for the settings options
-fn get_popup_area(area: Rect, item_count: u16) -> Rect {
+fn get_popup_area(area: Rect, item_count: u16, content_space: u16) -> Rect {
     let [_, popup_area, _] = Layout::vertical([
         Constraint::Min(0),
         Constraint::Length(item_count + 2), // As much items + 2 spaces
@@ -375,11 +423,12 @@ fn get_popup_area(area: Rect, item_count: u16) -> Rect {
     ])
     .areas(area);
 
+    let margin_per_side = (100 - content_space).strict_div(2);
     // Leave some space on either side
     let [_, popup_area, _] = Layout::horizontal([
-        Constraint::Percentage(40),
-        Constraint::Percentage(20),
-        Constraint::Percentage(40),
+        Constraint::Percentage(margin_per_side),
+        Constraint::Percentage(content_space),
+        Constraint::Percentage(margin_per_side),
     ])
     .areas(popup_area);
     popup_area

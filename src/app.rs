@@ -52,6 +52,7 @@ pub struct App {
     exit: bool,
     /// Stored here to simplify resizing
     area: Rect,
+    on_startup: bool,
 }
 
 impl App {
@@ -64,6 +65,7 @@ impl App {
             current_menu: CurrentMenu::None,
             exit: false,
             area: Rect::default(), // A dummy value until run is used
+            on_startup: true,
         }
     }
 
@@ -88,7 +90,10 @@ impl App {
             // Only evolve if enough time has elapsed, it can happen that handle_events
             // returns early, in that case we just wait.
             // And also if there's enough space, otherwise the simulation won't make much sense.
-            if Instant::now() >= next_tick && ui::is_terminal_big_enough(self.area) {
+            if Instant::now() >= next_tick
+                && ui::is_terminal_big_enough(self.area)
+                && !self.on_startup
+            {
                 self.grid.evolve();
                 next_tick = Instant::now() + self.settings.tick_interval();
             }
@@ -105,6 +110,10 @@ impl App {
         }
 
         ui::render(frame, &self.grid, &self.settings.get_theme());
+
+        if self.on_startup {
+            ui::startup_banner(frame, area, &self.settings.get_theme());
+        }
 
         match &self.current_menu {
             CurrentMenu::None => {}
@@ -152,6 +161,13 @@ impl App {
     }
 
     fn handle_key_event(&mut self, key_event: KeyEvent) {
+        if self.on_startup {
+            match key_event.code {
+                KeyCode::Enter => self.on_startup = false,
+                KeyCode::Char('q') | KeyCode::Esc => self.exit(),
+                _ => {}
+            }
+        }
         match self.current_menu {
             CurrentMenu::None => match key_event.code {
                 KeyCode::Char('q') | KeyCode::Esc => self.exit(),
