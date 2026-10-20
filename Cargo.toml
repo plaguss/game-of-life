@@ -8,3 +8,7 @@ crossterm = "0.29.0"
 rand = "0.10.3"
 ratatui = "0.30.2"
 strum = "0.28.0"
+
+[[bin]]
+name = "gol"
+path = "src/main.rs"
