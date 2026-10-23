@@ -1,15 +1,11 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::patterns::{Cell, AliveCells, Pattern};
+use crate::patterns::{AliveCells, Cell, Pattern};
 use crate::rules::Rule;
 
 use rand::RngExt;
 
-fn get_num_neighbours(
-    alive_cells: &AliveCells,
-    height: i16,
-    width: i16,
-) -> HashMap<Cell, u8> {
+fn get_num_neighbours(alive_cells: &AliveCells, height: i16, width: i16) -> HashMap<Cell, u8> {
     // The neighbors are the deltas to check
     let neighbours = [
         (-1, -1), // Above left
@@ -107,7 +103,7 @@ impl Grid {
     /// Adds a pattern to the grid during the evolution.
     /// This method is mainly relevant for the "auto" mode, to ensure
     /// the grid doesn't get stale.
-    /// 
+    ///
     /// It adds a Pattern::Fixed to a random position within
     /// the available board.
     pub fn add_pattern(&mut self, pattern: &Pattern) {
@@ -320,17 +316,38 @@ mod tests {
         let mut grid = Grid::new(Rule::game_of_life());
         grid.add_pattern(&Pattern::from(PatternName::Toad));
 
-        let min_row = grid.get_alive_cells().iter().map(|&(r, _)| r).min().unwrap();
-        let max_row = grid.get_alive_cells().iter().map(|&(r, _)| r).max().unwrap();
-        let min_col = grid.get_alive_cells().iter().map(|&(_, c)| c).min().unwrap();
-        let max_col = grid.get_alive_cells().iter().map(|&(_, c)| c).max().unwrap();
+        let min_row = grid
+            .get_alive_cells()
+            .iter()
+            .map(|&(r, _)| r)
+            .min()
+            .unwrap();
+        let max_row = grid
+            .get_alive_cells()
+            .iter()
+            .map(|&(r, _)| r)
+            .max()
+            .unwrap();
+        let min_col = grid
+            .get_alive_cells()
+            .iter()
+            .map(|&(_, c)| c)
+            .min()
+            .unwrap();
+        let max_col = grid
+            .get_alive_cells()
+            .iter()
+            .map(|&(_, c)| c)
+            .max()
+            .unwrap();
 
         assert_eq!(max_row - min_row + 1, 2);
         assert_eq!(max_col - min_col + 1, 4);
-        assert!(grid
-            .get_alive_cells()
-            .iter()
-            .all(|&(r, c)| (0..grid.height()).contains(&r) && (0..grid.width()).contains(&c)));
+        assert!(
+            grid.get_alive_cells()
+                .iter()
+                .all(|&(r, c)| (0..grid.height()).contains(&r) && (0..grid.width()).contains(&c))
+        );
     }
 
     #[test]

@@ -7,9 +7,9 @@ use ratatui::{
 };
 use strum::IntoEnumIterator;
 
-use crate::{grid::Grid, patterns::Cell};
 use crate::settings::Settings;
 use crate::theme::{Theme, ThemeName};
+use crate::{grid::Grid, patterns::Cell};
 use crate::{patterns::PatternName, rules::RuleName};
 
 pub fn render(frame: &mut Frame<'_>, grid: &Grid, theme: &Theme) {
@@ -114,7 +114,9 @@ pub fn grid_dimensions_for_terminal(area: Rect) -> Cell {
     // We can unwrap the try_from even if it doesn't fit because
     // the board (the terminal grid) cannot be biger than the i16 size
     (
-        (i16::try_from(board.height).unwrap() * 2).max(Grid::MIN_DIMENSION).into(),
+        (i16::try_from(board.height).unwrap() * 2)
+            .max(Grid::MIN_DIMENSION)
+            .into(),
         i16::try_from(board.width).unwrap().max(Grid::MIN_DIMENSION),
     )
 }
@@ -236,7 +238,14 @@ pub fn settings_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings, sel
         format!("Theme: {:?}", settings.theme),
         format!("Pattern: {:?}", settings.pattern),
         format!("Rule: {:?}", settings.rule),
-        format!("Auto: {}", if settings.auto {"● ON ○ OFF"} else {"○ ON ● OFF"})
+        format!(
+            "Auto: {}",
+            if settings.auto {
+                "● ON ○ OFF"
+            } else {
+                "○ ON ● OFF"
+            }
+        ),
     ];
 
     let popup_area = get_popup_area(area, items.iter().len() as u16, 20);
@@ -245,7 +254,6 @@ pub fn settings_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings, sel
         .title(" Settings ")
         .style(theme.background)
         .border_style(theme.accent);
-
 
     let mut list_state = ListState::default().with_selected(Some(selected));
     frame.render_widget(Clear, popup_area);

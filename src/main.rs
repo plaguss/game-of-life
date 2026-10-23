@@ -11,6 +11,7 @@ use ratatui::{
 
 mod app;
 mod grid;
+mod history;
 mod patterns;
 mod rules;
 mod settings;
