@@ -66,7 +66,8 @@ impl History {
         if self.points.len() < generations {
             return false;
         }
-        // TODO: ADD ANOTHER CHECK FOR THE BOARD SIZE, IF IT'S TOO SMALL RETURNS TRUE TOO
+        // TODO: ADD ANOTHER CHECK FOR THE DENSITY, IF IT'S TOO LOW AFTER N GENERATIONS,
+        // RETURN TRUE
         self.board_unchanged_for(generations) || self.population_unchanged()
     }
 
@@ -74,7 +75,7 @@ impl History {
     /// have passed.
     fn board_unchanged_for(&self, generations: usize) -> bool {
         match self.points.back() {
-            Some(first) => self.points.iter().rev().take(generations).all(
+            Some(first) => self.points.iter().rev().skip(1).take(generations - 1).any(
                 |&Point {
                      population_size: _,
                      fingerprint,

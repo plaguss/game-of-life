@@ -2,9 +2,9 @@ use std::io;
 use std::time::{Duration, Instant};
 
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
+use rand::RngExt;
 use ratatui::layout::Rect;
 use ratatui::{DefaultTerminal, Frame};
-use rand::RngExt;
 
 use crate::rules::RuleName;
 use crate::{
