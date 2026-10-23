@@ -1,15 +1,15 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::patterns::{AliveCells, Pattern};
+use crate::patterns::{Cell, AliveCells, Pattern};
 use crate::rules::Rule;
 
 use rand::RngExt;
 
 fn get_num_neighbours(
     alive_cells: &AliveCells,
-    height: i32,
-    width: i32,
-) -> HashMap<(i32, i32), u8> {
+    height: i16,
+    width: i16,
+) -> HashMap<Cell, u8> {
     // The neighbors are the deltas to check
     let neighbours = [
         (-1, -1), // Above left
@@ -45,12 +45,12 @@ pub struct Grid {
     /// for this case.
     step: u32,
     // grid dimensions, in the same coordinates as the cells
-    height: i32,
-    width: i32,
+    height: i16,
+    width: i16,
 }
 
 impl Grid {
-    pub const MIN_DIMENSION: i32 = 40;
+    pub const MIN_DIMENSION: i16 = 40;
 
     /// On creation, the alive_cells aren't populated, those come later
     /// when the pattern is set.
@@ -64,6 +64,32 @@ impl Grid {
         }
     }
 
+    pub fn get_alive_cells(&self) -> &AliveCells {
+        &self.alive_cells
+    }
+
+    pub fn height(&self) -> i16 {
+        self.height
+    }
+
+    pub fn width(&self) -> i16 {
+        self.width
+    }
+
+    /// Number of cells alive. Shouldn't reach such a high number
+    /// for this case.
+    pub fn population(&self) -> usize {
+        self.alive_cells.len()
+    }
+
+    /// Stage of the evolution. Increments on each call to evolve.
+    pub fn generation(&self) -> u32 {
+        self.step
+    }
+
+    /// Sets the pattern on the grid on a second stage. We need
+    /// to do it like this to ensure the random soup has knowledge of the
+    /// size to fill the space properly.
     pub fn set_pattern(&mut self, pattern: &Pattern) {
         match pattern {
             Pattern::Fixed {
@@ -78,27 +104,42 @@ impl Grid {
         }
     }
 
-    pub fn get_alive_cells(&self) -> &AliveCells {
-        &self.alive_cells
-    }
+    /// Adds a pattern to the grid during the evolution.
+    /// This method is mainly relevant for the "auto" mode, to ensure
+    /// the grid doesn't get stale.
+    /// 
+    /// It adds a Pattern::Fixed to a random position within
+    /// the available board.
+    pub fn add_pattern(&mut self, pattern: &Pattern) {
+        match pattern {
+            Pattern::Fixed {
+                name: _,
+                alive_cells,
+            } => {
+                let mut rng = rand::rng();
 
-    pub fn height(&self) -> i32 {
-        self.height
-    }
+                // Get the pattern's bounding box to ensure it fits within the grid.
+                // We can unwrap because the alive cells always have values.
+                let min_row = alive_cells.iter().map(|&(r, _)| r).min().unwrap();
+                let min_col = alive_cells.iter().map(|&(_, c)| c).min().unwrap();
+                let max_row = alive_cells.iter().map(|&(r, _)| r).max().unwrap();
+                let max_col = alive_cells.iter().map(|&(_, c)| c).max().unwrap();
+                let pattern_height = max_row - min_row + 1;
+                let pattern_width = max_col - min_col + 1;
 
-    pub fn width(&self) -> i32 {
-        self.width
-    }
+                let offset_row = rng.random_range(0..=(self.height - pattern_height));
+                let offset_col = rng.random_range(0..=(self.width - pattern_width));
 
-    /// Number of cells alive. Shouldn't reach such a high number
-    /// for this case.
-    pub fn population(&self) -> usize {
-        self.alive_cells.len()
-    }
+                // Reposition the alive cells
+                let new_alive_cells: AliveCells = alive_cells
+                    .iter()
+                    .map(|&(r, c)| (r - min_row + offset_row, c - min_col + offset_col))
+                    .collect();
 
-    /// Stage of the evolution. Increments on each call to evolve.
-    pub fn generation(&self) -> u32 {
-        self.step
+                self.alive_cells = self.alive_cells.union(&new_alive_cells).copied().collect();
+            }
+            _ => {}
+        }
     }
 
     fn build_random_soup(&mut self, density: f32) {
@@ -124,7 +165,7 @@ impl Grid {
     /// - Shrinking without collisions, nothing changes
     /// - Shrinking with collisions: the whole pattern is recentered. It may look
     /// like a jump, but the pattern isn't split.
-    pub fn resize(&mut self, height: i32, width: i32) {
+    pub fn resize(&mut self, height: i16, width: i16) {
         self.height = height.max(Self::MIN_DIMENSION);
         self.width = width.max(Self::MIN_DIMENSION);
 
@@ -272,5 +313,34 @@ mod tests {
             grid.get_alive_cells(),
             &HashSet::from([(2, 1), (2, 3), (1, 1), (1, 3), (3, 1), (3, 3)])
         );
+    }
+
+    #[test]
+    fn add_pattern_is_within_bounds() {
+        let mut grid = Grid::new(Rule::game_of_life());
+        grid.add_pattern(&Pattern::from(PatternName::Toad));
+
+        let min_row = grid.get_alive_cells().iter().map(|&(r, _)| r).min().unwrap();
+        let max_row = grid.get_alive_cells().iter().map(|&(r, _)| r).max().unwrap();
+        let min_col = grid.get_alive_cells().iter().map(|&(_, c)| c).min().unwrap();
+        let max_col = grid.get_alive_cells().iter().map(|&(_, c)| c).max().unwrap();
+
+        assert_eq!(max_row - min_row + 1, 2);
+        assert_eq!(max_col - min_col + 1, 4);
+        assert!(grid
+            .get_alive_cells()
+            .iter()
+            .all(|&(r, c)| (0..grid.height()).contains(&r) && (0..grid.width()).contains(&c)));
+    }
+
+    #[test]
+    fn add_pattern_preserves_existing_cells() {
+        let mut grid = Grid::new(Rule::game_of_life());
+        grid.set_pattern(&Pattern::from(PatternName::Glider));
+        let existing_cells = grid.get_alive_cells().clone();
+
+        grid.add_pattern(&Pattern::from(PatternName::Toad));
+
+        assert!(existing_cells.is_subset(grid.get_alive_cells()));
     }
 }

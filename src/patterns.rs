@@ -3,7 +3,8 @@ use std::fmt;
 
 use strum::{EnumIter, IntoEnumIterator};
 
-pub type AliveCells = HashSet<(i32, i32)>;
+pub type Cell = (i16, i16);
+pub type AliveCells = HashSet<Cell>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, EnumIter, Hash)]
 pub enum PatternName {
@@ -91,8 +92,8 @@ impl Pattern {
     }
 }
 
-pub fn available_patterns() -> HashMap<PatternName, &'static [(i32, i32)]> {
-    let mut patterns: HashMap<PatternName, &'static [(i32, i32)]> = HashMap::new();
+pub fn available_patterns() -> HashMap<PatternName, &'static [Cell]> {
+    let mut patterns: HashMap<PatternName, &'static [Cell]> = HashMap::new();
 
     patterns.insert(PatternName::Blinker, &[(2, 1), (2, 2), (2, 3)]);
     patterns.insert(

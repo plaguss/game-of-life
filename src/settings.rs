@@ -4,12 +4,15 @@ use crate::patterns::{Pattern, PatternName};
 use crate::rules::{Rule, RuleName};
 use crate::theme::{Theme, ThemeName};
 
+
 #[derive(Clone, Debug)]
 pub struct Settings {
     pub theme: ThemeName,
     pub fps: u8,
     pub pattern: PatternName,
     pub rule: RuleName,
+    /// Allow the grid to evolve by itself, and add patterns when it's getting stale.
+    pub auto: bool
 }
 
 /// Builds a elements on demand, fresh and from the corresponding names.
@@ -21,6 +24,7 @@ impl Settings {
             fps: 12,
             pattern: PatternName::default(),
             rule: RuleName::default(),
+            auto: false
         }
     }
 

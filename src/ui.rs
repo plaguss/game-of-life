@@ -1,9 +1,13 @@
 use ratatui::{
-    Frame, layout::{Constraint, Direction, Layout, Rect}, style::{Color, Modifier, Style}, text::{Line, Span}, widgets::{Block, Clear, List, ListState, Paragraph, Wrap},
+    Frame,
+    layout::{Constraint, Direction, Layout, Rect},
+    style::{Color, Modifier, Style},
+    text::{Line, Span},
+    widgets::{Block, Clear, List, ListState, Paragraph, Wrap},
 };
 use strum::IntoEnumIterator;
 
-use crate::grid::Grid;
+use crate::{grid::Grid, patterns::Cell};
 use crate::settings::Settings;
 use crate::theme::{Theme, ThemeName};
 use crate::{patterns::PatternName, rules::RuleName};
@@ -86,7 +90,7 @@ fn layout_areas(area: Rect) -> UiAreas {
     let [game_area, footer_area] = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Min(0), // The game area
+            Constraint::Min(0),    // The game area
             Constraint::Length(1), // The footer line
         ])
         .areas(area);
@@ -105,11 +109,13 @@ fn layout_areas(area: Rect) -> UiAreas {
 
 /// Choose logical grid dimensions that fit the board viewport, with a 40-cell minimum.
 /// The tuple is (height, width), matching `Grid::resize`.
-pub fn grid_dimensions_for_terminal(area: Rect) -> (i32, i32) {
+pub fn grid_dimensions_for_terminal(area: Rect) -> Cell {
     let board = layout_areas(area).board;
+    // We can unwrap the try_from even if it doesn't fit because
+    // the board (the terminal grid) cannot be biger than the i16 size
     (
-        (i32::from(board.height) * 2).max(Grid::MIN_DIMENSION),
-        i32::from(board.width).max(Grid::MIN_DIMENSION),
+        (i16::try_from(board.height).unwrap() * 2).max(Grid::MIN_DIMENSION).into(),
+        i16::try_from(board.width).unwrap().max(Grid::MIN_DIMENSION),
     )
 }
 
@@ -150,9 +156,7 @@ fn footer(frame: &mut Frame<'_>, area: Rect, theme: &Theme) {
         Span::styled("[Q]", Style::default().add_modifier(Modifier::BOLD)),
         Span::raw(" Quit"),
     ]);
-    let footer_paragraph = Paragraph::new(footer_line)
-        .style(theme.text)
-        .left_aligned();
+    let footer_paragraph = Paragraph::new(footer_line).style(theme.text).left_aligned();
 
     frame.render_widget(footer_paragraph, area);
 }
@@ -172,12 +176,12 @@ fn board(frame: &mut Frame<'_>, area: Rect, grid: &Grid, theme: &Theme) {
         .bg(theme.dead_cell.bg.unwrap_or(Color::Reset));
 
     for display_row in 0..area.height {
-        let top_row = i32::from(display_row) * 2;
+        let top_row = i16::try_from(display_row).unwrap() * 2;
         let bottom_row = top_row + 1;
 
         for col in 0..area.width {
             // TODO: Can this logic be moved to the grid itself to avoid having it split here?
-            let logical_col = i32::from(col);
+            let logical_col = i16::try_from(col).unwrap();
             let in_grid_width = u32::from(col) < visible_width;
             let top_alive = in_grid_width
                 && (top_row as u32) < visible_height
@@ -213,20 +217,7 @@ fn vertical_pair_glyph(top_alive: bool, bottom_alive: bool) -> &'static str {
 /// how it works, and useful links
 pub fn help_message(frame: &mut Frame<'_>, area: Rect, theme: &Theme) {
     // Two text lines plus the top and bottom borders
-    let [_, popup_area, _] = Layout::vertical([
-        Constraint::Min(0),
-        Constraint::Length(6),
-        Constraint::Min(0),
-    ])
-    .areas(area);
-
-    // Leave some space on either side
-    let [_, popup_area, _] = Layout::horizontal([
-        Constraint::Percentage(20),
-        Constraint::Percentage(60),
-        Constraint::Percentage(20),
-    ])
-    .areas(popup_area);
+    let popup_area = get_popup_area(area, 4, 60);
 
     let help_block = Block::bordered()
         .style(theme.background)
@@ -239,33 +230,22 @@ pub fn help_message(frame: &mut Frame<'_>, area: Rect, theme: &Theme) {
 }
 
 pub fn settings_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings, selected: usize) {
-    let [_, popup_area, _] = Layout::vertical([
-        Constraint::Min(0),
-        Constraint::Length(6), // 4 items + top and bottom borders
-        Constraint::Min(0),
-    ])
-    .areas(area);
-
-    // Leave some space on either side
-    let [_, popup_area, _] = Layout::horizontal([
-        Constraint::Percentage(40),
-        Constraint::Percentage(20),
-        Constraint::Percentage(40),
-    ])
-    .areas(popup_area);
-
     let theme = &settings.get_theme();
-    let settings_block = Block::bordered()
-        .title(" Settings ")
-        .style(theme.background)
-        .border_style(theme.accent);
-
     let items = [
         format!("FPS: {}", settings.fps),
         format!("Theme: {:?}", settings.theme),
         format!("Pattern: {:?}", settings.pattern),
         format!("Rule: {:?}", settings.rule),
+        format!("Auto: {}", if settings.auto {"● ON ○ OFF"} else {"○ ON ● OFF"})
     ];
+
+    let popup_area = get_popup_area(area, items.iter().len() as u16, 20);
+
+    let settings_block = Block::bordered()
+        .title(" Settings ")
+        .style(theme.background)
+        .border_style(theme.accent);
+
 
     let mut list_state = ListState::default().with_selected(Some(selected));
     frame.render_widget(Clear, popup_area);

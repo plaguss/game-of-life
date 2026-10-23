@@ -113,6 +113,7 @@ impl App {
 
         if self.on_startup {
             ui::startup_banner(frame, area, &self.settings.get_theme());
+            return;
         }
 
         match &self.current_menu {
@@ -197,12 +198,12 @@ impl App {
         match key_event.code {
             KeyCode::Down => {
                 self.current_menu = CurrentMenu::Settings(SettingsPage::Main {
-                    selected: wraparound_menu(selected, 4, Direction::Down),
+                    selected: wraparound_menu(selected, 5, Direction::Down),
                 })
             }
             KeyCode::Up => {
                 self.current_menu = CurrentMenu::Settings(SettingsPage::Main {
-                    selected: wraparound_menu(selected, 4, Direction::Up),
+                    selected: wraparound_menu(selected, 5, Direction::Up),
                 })
             }
             KeyCode::Enter => match selected {
@@ -212,8 +213,7 @@ impl App {
                     self.current_menu = CurrentMenu::Settings(SettingsPage::Pattern { selected: 0 })
                 }
                 3 => self.current_menu = CurrentMenu::Settings(SettingsPage::Rule { selected: 0 }),
-                // Should open Theme here, and then pattern, with the index in the
-                //place of the theme list not implemented
+                4 => self.settings.auto = !self.settings.auto,
                 _ => {}
             },
             KeyCode::Char('q') | KeyCode::Esc | KeyCode::Backspace => {
