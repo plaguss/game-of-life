@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 
+use rand::RngExt;
 use strum::{EnumIter, IntoEnumIterator};
 
 pub type Cell = (i16, i16);
@@ -90,6 +91,14 @@ impl Pattern {
     pub fn random_soup(density: f32) -> Self {
         Self::RandomSoup { density }
     }
+}
+
+/// Select a random pattern from the enum of PatternName, excluding the RandomSoup (which
+/// is always the last)
+pub fn random_pattern() -> Pattern {
+    let mut rng = rand::rng();
+    let idx = rng.random_range(0..(PatternName::count() - 1));
+    Pattern::from(PatternName::by_index(idx))
 }
 
 pub fn available_patterns() -> HashMap<PatternName, &'static [Cell]> {
@@ -282,6 +291,13 @@ mod tests {
                 }
                 _ => {} // don't check anything for the moment
             }
+        }
+    }
+
+    #[test]
+    fn random_pattern_never_returns_random_soup() {
+        for _ in 0..1000 {
+            assert!(matches!(random_pattern(), Pattern::Fixed { .. }));
         }
     }
 }

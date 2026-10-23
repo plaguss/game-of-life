@@ -66,6 +66,7 @@ impl History {
         if self.points.len() < generations {
             return false;
         }
+        // TODO: ADD ANOTHER CHECK FOR THE BOARD SIZE, IF IT'S TOO SMALL RETURNS TRUE TOO
         self.board_unchanged_for(generations) || self.population_unchanged()
     }
 

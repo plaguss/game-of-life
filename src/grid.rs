@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
+use crate::history::History;
 use crate::patterns::{AliveCells, Cell, Pattern};
 use crate::rules::Rule;
 
@@ -40,13 +41,19 @@ pub struct Grid {
     /// Step number. Shouldn't reach such a high number
     /// for this case.
     step: u32,
-    // grid dimensions, in the same coordinates as the cells
+    /// grid dimensions, in the same coordinates as the cells
     height: i16,
     width: i16,
+
+    /// History tracker of the board
+    history: History,
 }
 
 impl Grid {
     pub const MIN_DIMENSION: i16 = 40;
+    /// Number of generations kept in the history. It also serves as the
+    /// number of unchanged generations after which the board is stagnant.
+    pub const HISTORY_WINDOW: usize = 50;
 
     /// On creation, the alive_cells aren't populated, those come later
     /// when the pattern is set.
@@ -57,6 +64,7 @@ impl Grid {
             step: 0,
             height: Self::MIN_DIMENSION,
             width: Self::MIN_DIMENSION,
+            history: History::new(Self::HISTORY_WINDOW),
         }
     }
 
@@ -105,23 +113,30 @@ impl Grid {
     /// the grid doesn't get stale.
     ///
     /// It adds a Pattern::Fixed to a random position within
-    /// the available board.
+    /// the available board. Does nothing if the pattern has no cells
+    /// or doesn't fit within the grid.
     pub fn add_pattern(&mut self, pattern: &Pattern) {
         match pattern {
             Pattern::Fixed {
                 name: _,
                 alive_cells,
             } => {
+                if alive_cells.is_empty() {
+                    return;
+                }
                 let mut rng = rand::rng();
 
                 // Get the pattern's bounding box to ensure it fits within the grid.
-                // We can unwrap because the alive cells always have values.
+                // The cells are non-empty, so the min/max always exist.
                 let min_row = alive_cells.iter().map(|&(r, _)| r).min().unwrap();
                 let min_col = alive_cells.iter().map(|&(_, c)| c).min().unwrap();
                 let max_row = alive_cells.iter().map(|&(r, _)| r).max().unwrap();
                 let max_col = alive_cells.iter().map(|&(_, c)| c).max().unwrap();
                 let pattern_height = max_row - min_row + 1;
                 let pattern_width = max_col - min_col + 1;
+                if pattern_height > self.height || pattern_width > self.width {
+                    return;
+                }
 
                 let offset_row = rng.random_range(0..=(self.height - pattern_height));
                 let offset_col = rng.random_range(0..=(self.width - pattern_width));
@@ -226,6 +241,12 @@ impl Grid {
         }
         self.alive_cells = next_alive_cells;
         self.step += 1;
+        self.history.add_point(&self.alive_cells);
+    }
+
+    /// Checks whether the board is stagnant within the last `generations`.
+    pub fn is_stagnant(&self, generations: usize) -> bool {
+        self.history.is_stagnant(generations)
     }
 }
 
@@ -359,5 +380,27 @@ mod tests {
         grid.add_pattern(&Pattern::from(PatternName::Toad));
 
         assert!(existing_cells.is_subset(grid.get_alive_cells()));
+    }
+
+    #[test]
+    fn add_pattern_ignores_empty_patterns() {
+        let mut grid = Grid::new(Rule::game_of_life());
+        grid.add_pattern(&Pattern::Fixed {
+            name: PatternName::Blinker,
+            alive_cells: HashSet::new(),
+        });
+
+        assert!(grid.get_alive_cells().is_empty());
+    }
+
+    #[test]
+    fn add_pattern_ignores_patterns_larger_than_grid() {
+        let mut grid = Grid::new(Rule::game_of_life());
+        grid.add_pattern(&Pattern::Fixed {
+            name: PatternName::Blinker,
+            alive_cells: HashSet::from([(0, 0), (Grid::MIN_DIMENSION, 0)]),
+        });
+
+        assert!(grid.get_alive_cells().is_empty());
     }
 }

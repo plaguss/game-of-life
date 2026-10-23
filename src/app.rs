@@ -8,7 +8,7 @@ use ratatui::{DefaultTerminal, Frame};
 use crate::rules::RuleName;
 use crate::{
     grid::Grid,
-    patterns::{Pattern, PatternName},
+    patterns::{Pattern, PatternName, random_pattern},
     rules::Rule,
     settings::Settings,
     theme::ThemeName,
@@ -96,6 +96,10 @@ impl App {
             {
                 self.grid.evolve();
                 next_tick = Instant::now() + self.settings.tick_interval();
+                if self.settings.auto && self.grid.is_stagnant(Grid::HISTORY_WINDOW) {
+                    // TODO: Add between 1 and 3 at any place
+                    self.grid.add_pattern(&random_pattern());
+                }
             }
         }
         Ok(())
