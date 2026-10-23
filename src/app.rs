@@ -4,6 +4,7 @@ use std::time::{Duration, Instant};
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::layout::Rect;
 use ratatui::{DefaultTerminal, Frame};
+use rand::RngExt;
 
 use crate::rules::RuleName;
 use crate::{
@@ -98,7 +99,10 @@ impl App {
                 next_tick = Instant::now() + self.settings.tick_interval();
                 if self.settings.auto && self.grid.is_stagnant(Grid::HISTORY_WINDOW) {
                     // TODO: Add between 1 and 3 at any place
-                    self.grid.add_pattern(&random_pattern());
+                    let mut rng = rand::rng();
+                    for _ in 0..rng.random_range(1..4) {
+                        self.grid.add_pattern(&random_pattern());
+                    }
                 }
             }
         }
