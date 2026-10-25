@@ -97,16 +97,22 @@ impl App {
             {
                 self.grid.evolve();
                 next_tick = Instant::now() + self.settings.tick_interval();
-                if self.settings.auto && self.grid.is_stagnant(Grid::HISTORY_WINDOW) {
-                    // TODO: Add between 1 and 3 at any place
-                    let mut rng = rand::rng();
-                    for _ in 0..rng.random_range(1..4) {
-                        self.grid.add_pattern(&random_pattern());
-                    }
+                if self.settings.auto
+                    && (self.grid.is_stagnant(Grid::HISTORY_WINDOW)
+                        || self.grid.density() < self.settings.min_density)
+                {
+                    self.add_random_patterns();
                 }
             }
         }
         Ok(())
+    }
+
+    fn add_random_patterns(&mut self) {
+        let mut rng = rand::rng();
+        for _ in 0..rng.random_range(1..4) {
+            self.grid.add_pattern(&random_pattern());
+        }
     }
 
     /// Updates a single frame, recomputes the UI
@@ -235,6 +241,8 @@ impl App {
         match key_event.code {
             KeyCode::Down => self.settings.fps = self.settings.fps.saturating_sub(1).clamp(1, 60),
             KeyCode::Up => self.settings.fps = self.settings.fps.saturating_add(1).clamp(1, 60),
+            KeyCode::Left => self.settings.fps = self.settings.fps.saturating_sub(5).clamp(1, 60),
+            KeyCode::Right => self.settings.fps = self.settings.fps.saturating_add(5).clamp(1, 60),
             KeyCode::Char('q') | KeyCode::Esc | KeyCode::Backspace => {
                 self.current_menu = CurrentMenu::Settings(SettingsPage::Main { selected: 0 })
             }

@@ -44,7 +44,6 @@ pub struct Grid {
     /// grid dimensions, in the same coordinates as the cells
     height: i16,
     width: i16,
-
     /// History tracker of the board
     history: History,
 }
@@ -53,7 +52,7 @@ impl Grid {
     pub const MIN_DIMENSION: i16 = 40;
     /// Number of generations kept in the history. It also serves as the
     /// number of unchanged generations after which the board is stagnant.
-    pub const HISTORY_WINDOW: usize = 50;
+    pub const HISTORY_WINDOW: usize = 30;
 
     /// On creation, the alive_cells aren't populated, those come later
     /// when the pattern is set.
@@ -84,6 +83,10 @@ impl Grid {
     /// for this case.
     pub fn population(&self) -> usize {
         self.alive_cells.len()
+    }
+
+    pub fn density(&self) -> f32 {
+        self.population() as f32 / (self.height() as f32 * self.width() as f32)
     }
 
     /// Stage of the evolution. Increments on each call to evolve.
@@ -162,8 +165,6 @@ impl Grid {
                 let p: f32 = rng.random();
                 if p < density {
                     self.alive_cells.insert((r, c));
-                } else {
-                    continue;
                 }
             }
         }

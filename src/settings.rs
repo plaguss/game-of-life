@@ -12,6 +12,7 @@ pub struct Settings {
     pub rule: RuleName,
     /// Allow the grid to evolve by itself, and add patterns when it's getting stale.
     pub auto: bool,
+    pub min_density: f32,
 }
 
 /// Builds a elements on demand, fresh and from the corresponding names.
@@ -24,6 +25,7 @@ impl Settings {
             pattern: PatternName::default(),
             rule: RuleName::default(),
             auto: false,
+            min_density: 0.002,
         }
     }
 
