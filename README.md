@@ -10,3 +10,4 @@ A simple game of life simulator
 [ ] Upload to crates to make it easy to install
 [ ] Add more tests
 [ ] Deploy pipeline
+[ ] Add to the bottom/right the values actually selected in the settings

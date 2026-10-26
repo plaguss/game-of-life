@@ -52,7 +52,7 @@ impl Grid {
     pub const MIN_DIMENSION: i16 = 40;
     /// Number of generations kept in the history. It also serves as the
     /// number of unchanged generations after which the board is stagnant.
-    pub const HISTORY_WINDOW: usize = 30;
+    pub const HISTORY_WINDOW: usize = 50;
 
     /// On creation, the alive_cells aren't populated, those come later
     /// when the pattern is set.

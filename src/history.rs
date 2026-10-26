@@ -14,9 +14,6 @@ pub struct Point {
     pub fingerprint: u64,
 }
 
-/// TODO: It will need
-/// - rolling history of board fingerprints (last N generations)
-/// - Check board states (access fingerprints)
 /// Tracks the evolution of the board, to detect stagnation and such.
 #[derive(Debug, Clone)]
 pub struct History {
@@ -66,8 +63,6 @@ impl History {
         if self.points.len() < generations {
             return false;
         }
-        // TODO: ADD ANOTHER CHECK FOR THE DENSITY, IF IT'S TOO LOW AFTER N GENERATIONS,
-        // RETURN TRUE
         self.board_unchanged_for(generations) || self.population_unchanged()
     }
 

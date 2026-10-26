@@ -25,7 +25,7 @@ impl Settings {
             pattern: PatternName::default(),
             rule: RuleName::default(),
             auto: false,
-            min_density: 0.002,
+            min_density: 0.005,
         }
     }
 
