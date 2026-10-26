@@ -212,12 +212,12 @@ impl App {
         match key_event.code {
             KeyCode::Down => {
                 self.current_menu = CurrentMenu::Settings(SettingsPage::Main {
-                    selected: wraparound_menu(selected, 5, Direction::Down),
+                    selected: wraparound_menu(selected, 6, Direction::Down),
                 })
             }
             KeyCode::Up => {
                 self.current_menu = CurrentMenu::Settings(SettingsPage::Main {
-                    selected: wraparound_menu(selected, 5, Direction::Up),
+                    selected: wraparound_menu(selected, 6, Direction::Up),
                 })
             }
             KeyCode::Enter => match selected {
@@ -228,6 +228,7 @@ impl App {
                 }
                 3 => self.current_menu = CurrentMenu::Settings(SettingsPage::Rule { selected: 0 }),
                 4 => self.settings.auto = !self.settings.auto,
+                5 => self.settings.shadow = !self.settings.shadow,
                 _ => {}
             },
             KeyCode::Char('q') | KeyCode::Esc | KeyCode::Backspace => {

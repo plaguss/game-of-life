@@ -12,6 +12,14 @@ use crate::theme::{Theme, ThemeName};
 use crate::{grid::Grid, patterns::Cell};
 use crate::{patterns::PatternName, rules::RuleName};
 
+/// Explicit state to discriminate not just dead/alive, but the shadow in case
+/// we are plotting it.
+enum CellState {
+    Alive,
+    Shadow,
+    Dead,
+}
+
 pub fn render(frame: &mut Frame<'_>, grid: &Grid, theme: &Theme) {
     let areas = layout_areas(frame.area());
 
@@ -164,19 +172,13 @@ fn footer(frame: &mut Frame<'_>, area: Rect, theme: &Theme) {
 }
 
 /// Render one logical column per terminal column and pack two logical rows into
-/// each terminal row. Full blocks represent two live cells; upper/lower half
-/// blocks represent a live top/bottom cell, respectively. Missing or out-of-
-/// bounds cells are dead, and half blocks use the dead-cell background so their
-/// unfilled half matches the board.
+/// each terminal row. Each pair's glyph and colors represent its top and bottom
+/// cell states. Missing or out-of-bounds cells are dead.
 fn board(frame: &mut Frame<'_>, area: Rect, grid: &Grid, theme: &Theme) {
     let buffer = frame.buffer_mut();
     let alive_cells = grid.get_alive_cells();
     let visible_width = u32::from(area.width).min(grid.width() as u32);
     let visible_height = (u32::from(area.height) * 2).min(grid.height() as u32);
-    let half_block_style = theme
-        .alive_cell
-        .bg(theme.dead_cell.bg.unwrap_or(Color::Reset));
-
     for display_row in 0..area.height {
         let top_row = i16::try_from(display_row).unwrap() * 2;
         let bottom_row = top_row + 1;
@@ -192,12 +194,17 @@ fn board(frame: &mut Frame<'_>, area: Rect, grid: &Grid, theme: &Theme) {
                 && (bottom_row as u32) < visible_height
                 && alive_cells.contains(&(bottom_row, logical_col));
 
-            let glyph = vertical_pair_glyph(top_alive, bottom_alive);
-            let style = match (top_alive, bottom_alive) {
-                (true, true) => theme.alive_cell,
-                (true, false) | (false, true) => half_block_style,
-                (false, false) => theme.dead_cell,
+            let top_state = if top_alive {
+                CellState::Alive
+            } else {
+                CellState::Dead
             };
+            let bottom_state = if bottom_alive {
+                CellState::Alive
+            } else {
+                CellState::Dead
+            };
+            let (glyph, style) = vertical_pair_appearance(top_state, bottom_state, theme);
 
             buffer[(area.x + col, area.y + display_row)]
                 .set_symbol(glyph)
@@ -206,12 +213,28 @@ fn board(frame: &mut Frame<'_>, area: Rect, grid: &Grid, theme: &Theme) {
     }
 }
 
-fn vertical_pair_glyph(top_alive: bool, bottom_alive: bool) -> &'static str {
-    match (top_alive, bottom_alive) {
-        (true, true) => "█",
-        (true, false) => "▀",
-        (false, true) => "▄",
-        (false, false) => " ",
+/// Helper function to return at once the glyph and style. It gets
+/// messier when we need to add the shadow because the character is
+/// directly related to the style.
+fn vertical_pair_appearance(
+    top: CellState,
+    bottom: CellState,
+    theme: &Theme,
+) -> (&'static str, Style) {
+    let alive = theme.alive_cell.fg.unwrap_or(Color::Reset);
+    let shadow = theme.shadow_cell.fg.unwrap_or(Color::Reset);
+    let dead = theme.dead_cell.bg.unwrap_or(Color::Reset);
+
+    match (top, bottom) {
+        (CellState::Alive, CellState::Alive) => ("█", theme.alive_cell),
+        (CellState::Shadow, CellState::Shadow) => ("█", theme.shadow_cell),
+        (CellState::Dead, CellState::Dead) => (" ", theme.dead_cell),
+        (CellState::Alive, CellState::Shadow) => ("▀", theme.alive_cell.bg(shadow)),
+        (CellState::Shadow, CellState::Alive) => ("▀", theme.shadow_cell.bg(alive)),
+        (CellState::Alive, CellState::Dead) => ("▀", theme.alive_cell.bg(dead)),
+        (CellState::Shadow, CellState::Dead) => ("▀", theme.shadow_cell.bg(dead)),
+        (CellState::Dead, CellState::Alive) => ("▀", theme.dead_cell.fg(dead).bg(alive)),
+        (CellState::Dead, CellState::Shadow) => ("▀", theme.dead_cell.fg(dead).bg(shadow)),
     }
 }
 
@@ -246,9 +269,17 @@ pub fn settings_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings, sel
                 "○ ON ● OFF"
             }
         ),
+        format!(
+            "Add shadow: {}",
+            if settings.shadow {
+                "● ON ○ OFF"
+            } else {
+                "○ ON ● OFF"
+            }
+        ),
     ];
 
-    let popup_area = get_popup_area(area, items.iter().len() as u16, 20);
+    let popup_area = get_popup_area(area, items.iter().len() as u16, 25);
 
     let settings_block = Block::bordered()
         .title(" Settings ")
@@ -471,10 +502,110 @@ mod tests {
     }
 
     #[test]
-    fn vertical_pair_glyphs_represent_both_cell_states() {
-        assert_eq!(vertical_pair_glyph(true, true), "█");
-        assert_eq!(vertical_pair_glyph(true, false), "▀");
-        assert_eq!(vertical_pair_glyph(false, true), "▄");
-        assert_eq!(vertical_pair_glyph(false, false), " ");
+    fn board_renders_all_live_dead_pairs_with_their_colors() {
+        let theme = Theme::matrix();
+        let mut grid = Grid::new(crate::rules::Rule::game_of_life());
+        grid.set_pattern(&crate::patterns::Pattern::Fixed {
+            name: PatternName::Blinker,
+            alive_cells: [(0, 0), (1, 0), (0, 1), (1, 2)].into_iter().collect(),
+        });
+        let backend = ratatui::backend::TestBackend::new(6, 3);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        let frame = terminal
+            .draw(|frame| board(frame, Rect::new(1, 1, 4, 1), &grid, &theme))
+            .unwrap();
+        let alive = theme.alive_cell.fg.unwrap();
+        let dead = theme.dead_cell.bg.unwrap();
+        let expected = [
+            ("█", alive, dead),
+            ("▀", alive, dead),
+            ("▀", dead, alive),
+            (" ", Color::Reset, dead),
+        ];
+
+        for (col, (glyph, fg, bg)) in (1..=4).zip(expected) {
+            let cell = &frame.buffer[(col, 1)];
+            assert_eq!(cell.symbol(), glyph, "column {col}");
+            assert_eq!(cell.fg, fg, "column {col}");
+            assert_eq!(cell.bg, bg, "column {col}");
+        }
+    }
+
+    #[test]
+    fn vertical_pair_appearance_handles_all_state_pairs_in_every_theme() {
+        for name in ThemeName::iter() {
+            let theme = Theme::from(name);
+            let alive = theme.alive_cell.fg.unwrap();
+            let shadow = theme.shadow_cell.fg.unwrap();
+            let dead = theme.dead_cell.bg.unwrap();
+            let cases = [
+                (CellState::Alive, CellState::Alive, "█", theme.alive_cell),
+                (CellState::Shadow, CellState::Shadow, "█", theme.shadow_cell),
+                (CellState::Dead, CellState::Dead, " ", theme.dead_cell),
+                (
+                    CellState::Alive,
+                    CellState::Shadow,
+                    "▀",
+                    theme.alive_cell.bg(shadow),
+                ),
+                (
+                    CellState::Shadow,
+                    CellState::Alive,
+                    "▀",
+                    theme.shadow_cell.bg(alive),
+                ),
+                (
+                    CellState::Alive,
+                    CellState::Dead,
+                    "▀",
+                    theme.alive_cell.bg(dead),
+                ),
+                (
+                    CellState::Shadow,
+                    CellState::Dead,
+                    "▀",
+                    theme.shadow_cell.bg(dead),
+                ),
+                (
+                    CellState::Dead,
+                    CellState::Alive,
+                    "▀",
+                    theme.dead_cell.fg(dead).bg(alive),
+                ),
+                (
+                    CellState::Dead,
+                    CellState::Shadow,
+                    "▀",
+                    theme.dead_cell.fg(dead).bg(shadow),
+                ),
+            ];
+
+            for (index, (top, bottom, glyph, style)) in cases.into_iter().enumerate() {
+                assert_eq!(
+                    vertical_pair_appearance(top, bottom, &theme),
+                    (glyph, style),
+                    "theme {name}, pair {index}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn vertical_pair_appearance_resets_unspecified_mixed_pair_colors() {
+        let theme = Theme::default();
+        let expected = ("▀", Style::default().fg(Color::Reset).bg(Color::Reset));
+
+        assert_eq!(
+            vertical_pair_appearance(CellState::Dead, CellState::Alive, &theme),
+            expected
+        );
+        assert_eq!(
+            vertical_pair_appearance(CellState::Dead, CellState::Shadow, &theme),
+            expected
+        );
+        assert_eq!(
+            vertical_pair_appearance(CellState::Alive, CellState::Shadow, &theme),
+            ("▀", Style::default().bg(Color::Reset))
+        );
     }
 }

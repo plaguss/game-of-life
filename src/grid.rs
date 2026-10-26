@@ -36,7 +36,11 @@ fn get_num_neighbours(alive_cells: &AliveCells, height: i16, width: i16) -> Hash
 // TODO: Decrease the height/width to i16, there's no more capacity anyway
 #[derive(Debug, Clone)]
 pub struct Grid {
+    /// Current cells in the board
     alive_cells: AliveCells,
+    /// The cells that were alive in the previous generation, so we can draw the
+    /// shadow if requested
+    previous_cells: AliveCells,
     rule: Rule,
     /// Step number. Shouldn't reach such a high number
     /// for this case.
@@ -59,6 +63,7 @@ impl Grid {
     pub fn new(rule: Rule) -> Self {
         Self {
             alive_cells: HashSet::new(),
+            previous_cells: HashSet::new(),
             rule,
             step: 0,
             height: Self::MIN_DIMENSION,
@@ -69,6 +74,10 @@ impl Grid {
 
     pub fn get_alive_cells(&self) -> &AliveCells {
         &self.alive_cells
+    }
+
+    pub fn get_previous_cells(&self) -> &AliveCells {
+        &self.previous_cells
     }
 
     pub fn height(&self) -> i16 {
@@ -240,6 +249,8 @@ impl Grid {
                 }
             }
         }
+        // Store them in case we want to plot the shadow
+        self.previous_cells = self.alive_cells.clone();
         self.alive_cells = next_alive_cells;
         // It shouldn't reach the max, but who knows...
         self.step = self.step.saturating_add(1);

@@ -13,6 +13,9 @@ pub struct Settings {
     /// Allow the grid to evolve by itself, and add patterns when it's getting stale.
     pub auto: bool,
     pub min_density: f32,
+    /// Whether to render the shadow of the cells, that's the previous alive cells,
+    /// which looks like an afterglow.
+    pub shadow: bool,
 }
 
 /// Builds a elements on demand, fresh and from the corresponding names.
@@ -26,6 +29,7 @@ impl Settings {
             rule: RuleName::default(),
             auto: false,
             min_density: 0.005,
+            shadow: false,
         }
     }
 
