@@ -123,7 +123,12 @@ impl App {
             return ui::terminal_too_small(frame, area, &self.settings);
         }
 
-        ui::render(frame, &self.grid, &self.settings.get_theme());
+        ui::render(
+            frame,
+            &self.grid,
+            &self.settings.get_theme(),
+            self.settings.shadow,
+        );
 
         if self.on_startup {
             ui::startup_banner(frame, area, &self.settings.get_theme());

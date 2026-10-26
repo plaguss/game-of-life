@@ -20,10 +20,18 @@ enum CellState {
     Dead,
 }
 
-pub fn render(frame: &mut Frame<'_>, grid: &Grid, theme: &Theme) {
+pub fn render(frame: &mut Frame<'_>, grid: &Grid, theme: &Theme, shadow: bool) {
     let areas = layout_areas(frame.area());
 
-    game(frame, areas.game, areas.status, areas.board, grid, theme);
+    game(
+        frame,
+        areas.game,
+        areas.status,
+        areas.board,
+        grid,
+        theme,
+        shadow,
+    );
     footer(frame, areas.footer, theme);
 }
 
@@ -137,6 +145,7 @@ fn game(
     board_area: Rect,
     grid: &Grid,
     theme: &Theme,
+    shadow: bool,
 ) {
     let title_block = Block::bordered()
         .style(theme.background)
@@ -153,16 +162,16 @@ fn game(
 
     frame.render_widget(counter_block, status_area);
 
-    board(frame, board_area, grid, theme);
+    board(frame, board_area, grid, theme, shadow);
 }
 
 fn footer(frame: &mut Frame<'_>, area: Rect, theme: &Theme) {
     let footer_line = Line::from(vec![
         Span::raw("Keys: "),
         Span::styled("[S]", Style::default().add_modifier(Modifier::BOLD)),
-        Span::raw(" Settings   |   "),
+        Span::raw(" Settings | "),
         Span::styled("[H]", Style::default().add_modifier(Modifier::BOLD)),
-        Span::raw(" Help   |   "),
+        Span::raw(" Help | "),
         Span::styled("[Q]", Style::default().add_modifier(Modifier::BOLD)),
         Span::raw(" Quit"),
     ]);
@@ -174,11 +183,24 @@ fn footer(frame: &mut Frame<'_>, area: Rect, theme: &Theme) {
 /// Render one logical column per terminal column and pack two logical rows into
 /// each terminal row. Each pair's glyph and colors represent its top and bottom
 /// cell states. Missing or out-of-bounds cells are dead.
-fn board(frame: &mut Frame<'_>, area: Rect, grid: &Grid, theme: &Theme) {
+fn board(frame: &mut Frame<'_>, area: Rect, grid: &Grid, theme: &Theme, shadow: bool) {
     let buffer = frame.buffer_mut();
     let alive_cells = grid.get_alive_cells();
+    let previous_cells = grid.get_previous_cells();
     let visible_width = u32::from(area.width).min(grid.width() as u32);
     let visible_height = (u32::from(area.height) * 2).min(grid.height() as u32);
+    let cell_state = |row: i16, col: i16| {
+        if (row as u32) >= visible_height || (col as u32) >= visible_width {
+            CellState::Dead
+        } else if alive_cells.contains(&(row, col)) {
+            CellState::Alive
+        } else if shadow && previous_cells.contains(&(row, col)) {
+            CellState::Shadow
+        } else {
+            CellState::Dead
+        }
+    };
+
     for display_row in 0..area.height {
         let top_row = i16::try_from(display_row).unwrap() * 2;
         let bottom_row = top_row + 1;
@@ -186,24 +208,8 @@ fn board(frame: &mut Frame<'_>, area: Rect, grid: &Grid, theme: &Theme) {
         for col in 0..area.width {
             // TODO: Can this logic be moved to the grid itself to avoid having it split here?
             let logical_col = i16::try_from(col).unwrap();
-            let in_grid_width = u32::from(col) < visible_width;
-            let top_alive = in_grid_width
-                && (top_row as u32) < visible_height
-                && alive_cells.contains(&(top_row, logical_col));
-            let bottom_alive = in_grid_width
-                && (bottom_row as u32) < visible_height
-                && alive_cells.contains(&(bottom_row, logical_col));
-
-            let top_state = if top_alive {
-                CellState::Alive
-            } else {
-                CellState::Dead
-            };
-            let bottom_state = if bottom_alive {
-                CellState::Alive
-            } else {
-                CellState::Dead
-            };
+            let top_state = cell_state(top_row, logical_col);
+            let bottom_state = cell_state(bottom_row, logical_col);
             let (glyph, style) = vertical_pair_appearance(top_state, bottom_state, theme);
 
             buffer[(area.x + col, area.y + display_row)]
@@ -512,7 +518,7 @@ mod tests {
         let backend = ratatui::backend::TestBackend::new(6, 3);
         let mut terminal = ratatui::Terminal::new(backend).unwrap();
         let frame = terminal
-            .draw(|frame| board(frame, Rect::new(1, 1, 4, 1), &grid, &theme))
+            .draw(|frame| board(frame, Rect::new(1, 1, 4, 1), &grid, &theme, false))
             .unwrap();
         let alive = theme.alive_cell.fg.unwrap();
         let dead = theme.dead_cell.bg.unwrap();
@@ -587,6 +593,74 @@ mod tests {
                     "theme {name}, pair {index}"
                 );
             }
+        }
+    }
+
+    #[test]
+    fn board_toggles_shadows_without_overriding_live_cells() {
+        let theme = Theme::matrix();
+        let mut grid = Grid::new(crate::rules::Rule::game_of_life());
+        grid.set_pattern(&crate::patterns::Pattern::Fixed {
+            name: PatternName::Blinker,
+            alive_cells: [(1, 0), (1, 1), (1, 2)].into_iter().collect(),
+        });
+        grid.evolve();
+        let backend = ratatui::backend::TestBackend::new(3, 2);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        let alive = theme.alive_cell.fg.unwrap();
+        let dead = theme.dead_cell.bg.unwrap();
+
+        for shadow in [true, false, true] {
+            let frame = terminal
+                .draw(|frame| board(frame, Rect::new(0, 0, 3, 2), &grid, &theme, shadow))
+                .unwrap();
+            for col in [0, 2] {
+                let cell = &frame.buffer[(col, 0)];
+                assert_eq!(cell.symbol(), if shadow { "▀" } else { " " });
+                assert_eq!(cell.fg, if shadow { dead } else { Color::Reset });
+                assert_eq!(
+                    cell.bg,
+                    if shadow {
+                        theme.shadow_cell.fg.unwrap()
+                    } else {
+                        dead
+                    }
+                );
+            }
+            let surviving_pair = &frame.buffer[(1, 0)];
+            assert_eq!(surviving_pair.symbol(), "█");
+            assert_eq!(surviving_pair.fg, alive);
+            assert_eq!(surviving_pair.bg, dead);
+            let new_cell = &frame.buffer[(1, 1)];
+            assert_eq!(new_cell.symbol(), "▀");
+            assert_eq!(new_cell.fg, alive);
+            assert_eq!(new_cell.bg, dead);
+        }
+    }
+
+    #[test]
+    fn board_does_not_render_shadows_outside_grid_bounds() {
+        let theme = Theme::matrix();
+        let mut grid = Grid::new(crate::rules::Rule::game_of_life());
+        let height = grid.height();
+        let width = grid.width();
+        grid.set_pattern(&crate::patterns::Pattern::Fixed {
+            name: PatternName::Blinker,
+            alive_cells: [(height, 0), (0, width)].into_iter().collect(),
+        });
+        grid.evolve();
+        assert_eq!(grid.get_previous_cells().len(), 2);
+        let area = Rect::new(0, 0, width as u16 + 1, height as u16 / 2 + 1);
+        let backend = ratatui::backend::TestBackend::new(area.width, area.height);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        let frame = terminal
+            .draw(|frame| board(frame, area, &grid, &theme, true))
+            .unwrap();
+
+        for position in [(0, height as u16 / 2), (width as u16, 0)] {
+            let cell = &frame.buffer[position];
+            assert_eq!(cell.symbol(), " ");
+            assert_eq!(cell.bg, theme.dead_cell.bg.unwrap());
         }
     }
 
