@@ -241,7 +241,8 @@ impl Grid {
             }
         }
         self.alive_cells = next_alive_cells;
-        self.step += 1;
+        // It shouldn't reach the max, but who knows...
+        self.step = self.step.saturating_add(1);
         self.history.add_point(&self.alive_cells);
     }
 
