@@ -2,7 +2,10 @@
 
 A simple game of life simulator
 
-[ ] Add notes in the Help, not just for how it works this, but for the patterns etc
+After the startup panel, press `h` for a short guide to the simulation,
+keyboard controls, and settings. Press `s` to change settings, or `q` / `Esc`
+to quit from the board. The simulation keeps running while menus are open.
+
 [ ] Create an example: https://github.com/charmbracelet/vhs
 [ ] Upload to crates to make it easy to install
 [ ] Add more tests

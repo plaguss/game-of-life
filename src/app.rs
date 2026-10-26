@@ -196,7 +196,7 @@ impl App {
                 _ => {}
             },
             CurrentMenu::Help => match key_event.code {
-                KeyCode::Char('q') | KeyCode::Esc => self.current_menu = CurrentMenu::None,
+                KeyCode::Char('q') | KeyCode::Backspace | KeyCode::Esc => self.current_menu = CurrentMenu::None,
                 _ => {}
             },
             CurrentMenu::Settings(page) => self.handle_settings_key(page, key_event),

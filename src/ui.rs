@@ -244,18 +244,36 @@ fn vertical_pair_appearance(
     }
 }
 
-/// TODO: Draws the help message, here we should explain what each piece does,
-/// how it works, and useful links
+/// Explain the simulation and its keyboard controls after startup.
 pub fn help_message(frame: &mut Frame<'_>, area: Rect, theme: &Theme) {
-    // Two text lines plus the top and bottom borders
-    let popup_area = get_popup_area(area, 4, 60);
+    let heading_style = theme.accent.add_modifier(Modifier::BOLD);
+    let text = vec![
+        Line::from("Watch cells live, die and form patterns across generations."),
+        Line::from("Track generation and population above the board."),
+        Line::from(""),
+        Line::styled("Keyboard", heading_style),
+        Line::from("h: Help   s: Settings"),
+        Line::from("q / Esc: Quit from the board"),
+        Line::from("Esc / q: Close help or go back"),
+        Line::from(""),
+        Line::styled("Settings", heading_style),
+        Line::from("Up/Down: Navigate or adjust FPS"),
+        Line::from("Enter: Select or toggle an option"),
+        Line::from("FPS: Speed   Theme: Colors"),
+        Line::from("Pattern: Restart with a new seed"),
+        Line::from("Rule: Birth and survival rules"),
+        Line::from("Auto: Add life if sparse or stale"),
+        Line::from("Shadow: Show previously live cells"),
+        Line::from(""),
+        Line::from("Simulation keeps running in menus."),
+    ];
+    let popup_area = get_popup_area(area, text.len() as u16, 30);
 
     let help_block = Block::bordered()
+        .title(" Help ")
         .style(theme.background)
         .border_style(theme.accent);
-    let help_message = Paragraph::new("h: Show help\nEsc: Close this menu")
-        .style(theme.text)
-        .block(help_block);
+    let help_message = Paragraph::new(text).wrap(Wrap { trim: true }).style(theme.text).block(help_block);
     frame.render_widget(Clear, popup_area);
     frame.render_widget(help_message, popup_area);
 }
@@ -478,6 +496,54 @@ pub fn terminal_too_small(frame: &mut Frame<'_>, area: Rect, settings: &Settings
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn help_fits_supported_terminal_sizes() {
+        for (width, height) in [
+            (MIN_TERMINAL_WIDTH, MIN_TERMINAL_HEIGHT),
+            (80, 24),
+            (120, 40),
+        ] {
+            let backend = ratatui::backend::TestBackend::new(width, height);
+            let mut terminal = ratatui::Terminal::new(backend).unwrap();
+            let frame = terminal
+                .draw(|frame| help_message(frame, frame.area(), &Theme::matrix()))
+                .unwrap();
+            let rows: Vec<String> = (0..height)
+                .map(|row| {
+                    (0..width)
+                        .map(|col| frame.buffer[(col, row)].symbol())
+                        .collect()
+                })
+                .collect();
+
+            for expected in [
+                " Help ",
+                "Watch cells live, die and form",
+                "patterns across generations.",
+                "Track generation and population",
+                "above the board.",
+                "Keyboard",
+                "h: Help   s: Settings",
+                "q / Esc: Quit from the board",
+                "Esc / q: Close help or go back",
+                "Settings",
+                "Up/Down: Navigate or adjust FPS",
+                "Enter: Select or toggle an option",
+                "FPS: Speed   Theme: Colors",
+                "Pattern: Restart with a new seed",
+                "Rule: Birth and survival rules",
+                "Auto: Add life if sparse or stale",
+                "Shadow: Show previously live cells",
+                "Simulation keeps running in menus.",
+            ] {
+                assert!(
+                    rows.iter().any(|row| row.contains(expected)),
+                    "{expected:?} clipped at {width}x{height}"
+                );
+            }
+        }
+    }
 
     #[test]
     fn board_area_matches_terminal_layout() {
