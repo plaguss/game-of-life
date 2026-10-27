@@ -51,6 +51,15 @@ checks on every push and pull request. Formatting and linting do not modify file
 formatting differences, lint warnings, and test failures cause their checks to fail.
 Run the same commands locally before pushing.
 
+### Documentation
+
+`lifeterm` is a terminal application, not a public Rust library. Generate its
+internal documentation with:
+
+```sh
+cargo doc --no-deps --document-private-items --open
+```
+
 ## Publishing
 
 Before each release, update the version in `Cargo.toml`, run `cargo check` to
@@ -71,7 +80,7 @@ cargo publish --locked
 
 ## TODO
 
-[ ] Create an example: https://github.com/charmbracelet/vhs
+[ ] Create an example: <https://github.com/charmbracelet/vhs>
     Needs a proper example of the different cases
 [ ] Upload to crates to make it easy to install
 [ ] Deploy pipeline

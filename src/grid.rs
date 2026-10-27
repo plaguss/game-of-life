@@ -1,3 +1,5 @@
+//! Simulation state and evolution on a grid with wraparound edges.
+
 use std::collections::{HashMap, HashSet};
 
 use crate::history::History;
@@ -6,6 +8,7 @@ use crate::rules::Rule;
 
 use rand::RngExt;
 
+/// Counts live neighbors, wrapping row and column coordinates at the grid edges.
 fn get_num_neighbours(alive_cells: &AliveCells, height: i16, width: i16) -> HashMap<Cell, u8> {
     // The neighbors are the deltas to check
     let neighbours = [
@@ -33,32 +36,32 @@ fn get_num_neighbours(alive_cells: &AliveCells, height: i16, width: i16) -> Hash
     num_neighbours
 }
 
+/// A finite, wraparound board with evolution rules and recent history.
 #[derive(Debug, Clone)]
 pub struct Grid {
-    /// Current cells in the board
+    /// Live cells in the current generation, stored as `(row, column)` coordinates.
     alive_cells: AliveCells,
-    /// The cells that were alive in the previous generation, so we can draw the
-    /// shadow if requested
+    /// Live cells from the previous generation, used to render shadows.
     previous_cells: AliveCells,
+    /// Neighbor counts that cause a cell to be born or survive.
     rule: Rule,
-    /// Step number. Shouldn't reach such a high number
-    /// for this case.
+    /// Number of completed evolution steps, saturating at `u32::MAX`.
     step: u32,
-    /// grid dimensions, in the same coordinates as the cells
+    /// Number of logical rows, independent of terminal character dimensions.
     height: i16,
+    /// Number of logical columns, independent of terminal character dimensions.
     width: i16,
-    /// History tracker of the board
+    /// Recent populations and board fingerprints used to detect stagnation.
     history: History,
 }
 
 impl Grid {
+    /// Minimum number of rows or columns, even in a smaller terminal.
     pub const MIN_DIMENSION: i16 = 40;
-    /// Number of generations kept in the history. It also serves as the
-    /// number of unchanged generations after which the board is stagnant.
+    /// Maximum number of generations retained for stagnation checks.
     pub const HISTORY_WINDOW: usize = 50;
 
-    /// On creation, the alive_cells aren't populated, those come later
-    /// when the pattern is set.
+    /// Creates an empty, minimum-sized board with the selected evolution rule.
     pub fn new(rule: Rule) -> Self {
         Self {
             alive_cells: HashSet::new(),
@@ -71,40 +74,44 @@ impl Grid {
         }
     }
 
+    /// Returns the live cells in the current generation.
     pub fn get_alive_cells(&self) -> &AliveCells {
         &self.alive_cells
     }
 
+    /// Returns the previous generation's live cells for shadow rendering.
     pub fn get_previous_cells(&self) -> &AliveCells {
         &self.previous_cells
     }
 
+    /// Returns the number of logical rows.
     pub fn height(&self) -> i16 {
         self.height
     }
 
+    /// Returns the number of logical columns.
     pub fn width(&self) -> i16 {
         self.width
     }
 
-    /// Number of cells alive. Shouldn't reach such a high number
-    /// for this case.
+    /// Returns the number of live cells.
     pub fn population(&self) -> usize {
         self.alive_cells.len()
     }
 
+    /// Returns the live-cell population divided by the logical grid area.
     pub fn density(&self) -> f32 {
         self.population() as f32 / (self.height() as f32 * self.width() as f32)
     }
 
-    /// Stage of the evolution. Increments on each call to evolve.
+    /// Returns the number of completed evolution steps.
     pub fn generation(&self) -> u32 {
         self.step
     }
 
-    /// Sets the pattern on the grid on a second stage. We need
-    /// to do it like this to ensure the random soup has knowledge of the
-    /// size to fill the space properly.
+    /// Replaces the live cells without resetting the generation or history.
+    ///
+    /// Random soup uses the current grid dimensions.
     pub fn set_pattern(&mut self, pattern: &Pattern) {
         match pattern {
             Pattern::Fixed { alive_cells } => {
@@ -155,6 +162,7 @@ impl Grid {
         }
     }
 
+    /// Seeds each grid position independently with the given probability.
     fn build_random_soup(&mut self, density: f32) {
         let mut rng = rand::rng();
         self.alive_cells = HashSet::new();
@@ -220,7 +228,7 @@ impl Grid {
             .collect();
     }
 
-    /// Evolve a single step in the grid
+    /// Advances one generation, saving shadow cells and updating history.
     pub fn evolve(&mut self) {
         let num_neighbors = get_num_neighbours(&self.alive_cells, self.height, self.width);
 
@@ -247,7 +255,8 @@ impl Grid {
         self.history.add_point(&self.alive_cells);
     }
 
-    /// Checks whether the board is stagnant within the last `generations`.
+    /// Checks for a repeated board within `generations` or a constant population
+    /// across the retained history. Requires at least `generations` samples.
     pub fn is_stagnant(&self, generations: usize) -> bool {
         self.history.is_stagnant(generations)
     }

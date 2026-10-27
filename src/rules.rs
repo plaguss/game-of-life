@@ -34,7 +34,7 @@ impl fmt::Display for RuleName {
 /// Implements the available set of rules (rule-string notation).
 ///
 /// B3/S23: Original Game of Life
-/// B36/S23: Highlife (https://en.wikipedia.org/wiki/Highlife_(cellular_automaton))
+/// B36/S23: Highlife (<https://en.wikipedia.org/wiki/Highlife_(cellular_automaton)>)
 ///
 /// Note:
 /// We could provide potentially more forms, but for the moment it
