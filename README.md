@@ -1,4 +1,4 @@
-# game-of-life
+# lifeterm
 
 A terminal renderer for [Conway's Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life), where cells evolve over successive generations according to simple rules.
 
@@ -7,13 +7,13 @@ A terminal renderer for [Conway's Game of Life](https://en.wikipedia.org/wiki/Co
 Once published on crates.io, install it with:
 
 ```sh
-cargo install game-of-life
+cargo install lifeterm
 ```
 
 Then start it from your terminal:
 
 ```sh
-gol
+lifeterm
 ```
 
 ## Usage
@@ -46,12 +46,33 @@ When Rust files in `src/` are staged, the hooks run `make fmt-check` and `make l
 prek run --all-files
 ```
 
+GitHub Actions runs `make fmt-check`, `make lint`, and `make test` as independent
+checks on every push and pull request. Formatting and linting do not modify files;
+formatting differences, lint warnings, and test failures cause their checks to fail.
+Run the same commands locally before pushing.
+
+## Publishing
+
+Before each release, update the version in `Cargo.toml`, run `cargo check` to
+update `Cargo.lock`, and commit the release changes.
+
+Authenticate with a crates.io API token (only needed once):
+
+```sh
+cargo login
+```
+
+Verify the package without uploading it, then publish:
+
+```sh
+cargo publish --dry-run --locked
+cargo publish --locked
+```
+
 ## TODO
 
 [ ] Create an example: https://github.com/charmbracelet/vhs
     Needs a proper example of the different cases
 [ ] Upload to crates to make it easy to install
-[ ] Add more tests
 [ ] Deploy pipeline
-[ ] Allow the density to be user provided.
-[ ] Add more patterns, links and brief explanation on the different settings.
+[ ] Allow the density to be user provided

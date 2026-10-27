@@ -1,6 +1,6 @@
 CARGO ?= cargo
 
-.PHONY: dev build run jlox clox test lint fmt fmt-check check clean ast fmt-lint-test
+.PHONY: dev build run test lint fmt fmt-check fmt-lint-test check clean
 
 dev: run
 
@@ -8,7 +8,7 @@ build:
 	$(CARGO) build
 
 run:
-	$(CARGO) run -- $(ARGS)
+	$(CARGO) run
 
 test:
 	$(CARGO) test
