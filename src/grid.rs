@@ -33,7 +33,6 @@ fn get_num_neighbours(alive_cells: &AliveCells, height: i16, width: i16) -> Hash
     num_neighbours
 }
 
-// TODO: Decrease the height/width to i16, there's no more capacity anyway
 #[derive(Debug, Clone)]
 pub struct Grid {
     /// Current cells in the board
@@ -283,6 +282,21 @@ mod tests {
     }
 
     #[test]
+    fn resize_recenters_only_when_cells_do_not_fit() {
+        let mut grid = Grid::new(Rule::game_of_life());
+        grid.resize(60, 60);
+        grid.set_pattern(&Pattern::Fixed {
+            alive_cells: HashSet::from([(45, 45), (45, 46)]),
+        });
+
+        grid.resize(50, 50);
+        assert_eq!(grid.get_alive_cells(), &HashSet::from([(45, 45), (45, 46)]));
+
+        grid.resize(40, 40);
+        assert_eq!(grid.get_alive_cells(), &HashSet::from([(19, 19), (19, 20)]));
+    }
+
+    #[test]
     fn neighbors_exclude_self_and_count_shared_neighbors() {
         let counts = get_num_neighbours(&HashSet::from([(0, 0), (0, 1)]), 60, 40);
 
@@ -321,6 +335,41 @@ mod tests {
     }
 
     #[test]
+    fn blinker_evolves_across_grid_edge() {
+        let mut grid = Grid::new(Rule::game_of_life());
+        grid.set_pattern(&Pattern::Fixed {
+            alive_cells: HashSet::from([(39, 10), (0, 10), (1, 10)]),
+        });
+
+        grid.evolve();
+
+        assert_eq!(
+            grid.get_alive_cells(),
+            &HashSet::from([(0, 9), (0, 10), (0, 11)])
+        );
+    }
+
+    #[test]
+    fn evolve_updates_generation_and_previous_cells() {
+        let mut grid = Grid::new(Rule::game_of_life());
+        grid.set_pattern(&Pattern::from(PatternName::Blinker));
+        let initial = grid.get_alive_cells().clone();
+
+        assert_eq!(grid.generation(), 0);
+        assert!(grid.get_previous_cells().is_empty());
+
+        grid.evolve();
+        let first_generation = grid.get_alive_cells().clone();
+        assert_eq!(grid.generation(), 1);
+        assert_eq!(grid.get_previous_cells(), &initial);
+
+        grid.evolve();
+        assert_eq!(grid.generation(), 2);
+        assert_eq!(grid.get_previous_cells(), &first_generation);
+        assert_eq!(grid.get_alive_cells(), &initial);
+    }
+
+    #[test]
     fn evolve_uses_custom_birth_and_survival_rules() {
         let mut grid = Grid::new(Rule::new(&[2], &[1]));
         grid.set_pattern(&Pattern::from(PatternName::Blinker));
@@ -334,6 +383,43 @@ mod tests {
             grid.get_alive_cells(),
             &HashSet::from([(2, 1), (2, 3), (1, 1), (1, 3), (3, 1), (3, 3)])
         );
+    }
+
+    #[test]
+    fn highlife_gives_birth_with_six_neighbors() {
+        let pattern = Pattern::Fixed {
+            alive_cells: HashSet::from([(9, 9), (9, 10), (9, 11), (10, 9), (10, 11), (11, 9)]),
+        };
+        let mut highlife = Grid::new(Rule::highlife());
+        let mut game_of_life = Grid::new(Rule::game_of_life());
+        highlife.set_pattern(&pattern);
+        game_of_life.set_pattern(&pattern);
+
+        highlife.evolve();
+        game_of_life.evolve();
+
+        assert!(highlife.get_alive_cells().contains(&(10, 10)));
+        assert!(!game_of_life.get_alive_cells().contains(&(10, 10)));
+    }
+
+    #[test]
+    fn random_soup_extreme_densities_replace_existing_cells() {
+        let mut grid = Grid::new(Rule::game_of_life());
+        grid.set_pattern(&Pattern::from(PatternName::Glider));
+
+        grid.set_pattern(&Pattern::RandomSoup { density: 1.0 });
+        assert_eq!(
+            grid.population(),
+            (grid.height() as usize) * (grid.width() as usize)
+        );
+        assert!(
+            grid.get_alive_cells()
+                .iter()
+                .all(|&(r, c)| (0..grid.height()).contains(&r) && (0..grid.width()).contains(&c))
+        );
+
+        grid.set_pattern(&Pattern::RandomSoup { density: 0.0 });
+        assert!(grid.get_alive_cells().is_empty());
     }
 
     #[test]
@@ -384,6 +470,19 @@ mod tests {
         grid.add_pattern(&Pattern::from(PatternName::Toad));
 
         assert!(existing_cells.is_subset(grid.get_alive_cells()));
+    }
+
+    #[test]
+    fn add_pattern_translates_exact_fit_with_shifted_coordinates() {
+        let mut grid = Grid::new(Rule::game_of_life());
+        grid.add_pattern(&Pattern::Fixed {
+            alive_cells: HashSet::from([(10, -7), (49, 32), (20, 9)]),
+        });
+
+        assert_eq!(
+            grid.get_alive_cells(),
+            &HashSet::from([(0, 0), (39, 39), (10, 16)])
+        );
     }
 
     #[test]

@@ -522,8 +522,9 @@ mod tests {
     }
 
     #[test]
-    fn new_spaceships_translate_after_their_period() {
+    fn spaceships_translate_after_their_period() {
         for (name, period, delta) in [
+            (PatternName::Glider, 4, (1, 1)),
             (PatternName::LightweightSpaceship, 4, (0, 2)),
             (PatternName::MiddleweightSpaceship, 4, (0, -2)),
             (PatternName::HeavyweightSpaceship, 4, (0, -2)),
@@ -539,6 +540,32 @@ mod tests {
                 grid.evolve();
             }
             assert_eq!(grid.get_alive_cells(), &expected, "{name}");
+        }
+    }
+
+    #[test]
+    fn oscillators_return_after_their_period() {
+        for (name, period) in [
+            (PatternName::Blinker, 2),
+            (PatternName::Toad, 2),
+            (PatternName::Beacon, 2),
+            (PatternName::Pulsar, 3),
+            (PatternName::PentaDecathlon, 15),
+        ] {
+            let mut grid = centered_grid(name);
+            let initial = grid.get_alive_cells().clone();
+            for generation in 1..=period {
+                grid.evolve();
+                if generation < period {
+                    assert_ne!(
+                        grid.get_alive_cells(),
+                        &initial,
+                        "{name}, generation {generation}"
+                    );
+                } else {
+                    assert_eq!(grid.get_alive_cells(), &initial, "{name}");
+                }
+            }
         }
     }
 
@@ -570,20 +597,39 @@ mod tests {
     #[test]
     fn from_loads_expected_pattern() {
         let available = available_patterns();
+        assert_eq!(available.len(), PatternName::count() - 1);
+        assert!(!available.contains_key(&PatternName::RandomSoup));
         for pattern_name in PatternName::iter() {
-            let pattern = Pattern::from(pattern_name);
-            if let Pattern::Fixed { alive_cells } = pattern {
-                assert_eq!(
-                    alive_cells,
-                    available
-                        .get(&pattern_name)
-                        .unwrap()
-                        .iter()
-                        .copied()
-                        .collect()
-                );
+            match (pattern_name, Pattern::from(pattern_name)) {
+                (PatternName::RandomSoup, Pattern::RandomSoup { density }) => {
+                    assert_eq!(density, 0.3);
+                }
+                (PatternName::RandomSoup, Pattern::Fixed { .. }) => {
+                    panic!("Random Soup should not be a fixed pattern");
+                }
+                (name, Pattern::Fixed { alive_cells }) => {
+                    let cells = available.get(&name).unwrap();
+                    assert!(!cells.is_empty(), "{name}");
+                    assert_eq!(alive_cells.len(), cells.len(), "{name}: duplicate cells");
+                    assert_eq!(alive_cells, cells.iter().copied().collect(), "{name}");
+                }
+                (name, Pattern::RandomSoup { .. }) => {
+                    panic!("{name} should be a fixed pattern");
+                }
             }
         }
+    }
+
+    #[test]
+    fn pattern_indices_match_menu_order_and_clamp_at_end() {
+        for (index, name) in PatternName::iter().enumerate() {
+            assert_eq!(PatternName::by_index(index), name);
+        }
+        assert_eq!(
+            PatternName::by_index(PatternName::count() - 1),
+            PatternName::RandomSoup
+        );
+        assert_eq!(PatternName::by_index(usize::MAX), PatternName::RandomSoup);
     }
 
     #[test]

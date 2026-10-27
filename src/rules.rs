@@ -46,6 +46,8 @@ pub struct Rule {
 }
 
 impl Rule {
+    /// Constructs a rule. Birth and survival at zero neighbors are not supported
+    /// by the grid's evolution algorithm.
     pub fn new(birth: &[u8], survival: &[u8]) -> Self {
         Self {
             birth: HashSet::from_iter(birth.iter().cloned()),

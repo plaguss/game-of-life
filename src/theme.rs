@@ -197,6 +197,39 @@ mod tests {
     use super::*;
 
     #[test]
+    fn theme_names_select_their_presets() {
+        for (name, expected) in [
+            (ThemeName::Matrix, Theme::matrix()),
+            (ThemeName::Cyberpunk, Theme::cyberpunk()),
+            (ThemeName::RetroAmber, Theme::retro_amber()),
+            (ThemeName::Nord, Theme::nord()),
+            (ThemeName::VioletHaze, Theme::violet_haze()),
+            (ThemeName::RosePineDawn, Theme::rose_pine_dawn()),
+            (ThemeName::BlackAndWhite, Theme::og()),
+        ] {
+            let actual = Theme::from(name);
+            assert_eq!(actual.background, expected.background, "{name}");
+            assert_eq!(actual.text, expected.text, "{name}");
+            assert_eq!(actual.accent, expected.accent, "{name}");
+            assert_eq!(actual.alive_cell, expected.alive_cell, "{name}");
+            assert_eq!(actual.shadow_cell, expected.shadow_cell, "{name}");
+            assert_eq!(actual.dead_cell, expected.dead_cell, "{name}");
+        }
+    }
+
+    #[test]
+    fn themes_have_visible_cells_and_consistent_board_backgrounds() {
+        for name in ThemeName::iter() {
+            let theme = Theme::from(name);
+            assert!(theme.background.bg.is_some(), "{name}");
+            assert!(theme.alive_cell.fg.is_some(), "{name}");
+            assert_ne!(theme.alive_cell.fg, theme.background.bg, "{name}");
+            assert_eq!(theme.alive_cell.bg, theme.background.bg, "{name}");
+            assert_eq!(theme.dead_cell.bg, theme.background.bg, "{name}");
+        }
+    }
+
+    #[test]
     fn shadow_cells_have_distinct_colors_and_match_the_background() {
         for name in ThemeName::iter() {
             let theme = Theme::from(name);
@@ -209,8 +242,9 @@ mod tests {
 
     #[test]
     fn ensure_themes_dont_overflow() {
-        // Grab first, last, and above the last
-        assert_eq!(ThemeName::by_index(0), ThemeName::Matrix);
+        for (index, name) in ThemeName::iter().enumerate() {
+            assert_eq!(ThemeName::by_index(index), name);
+        }
         assert_eq!(
             ThemeName::by_index(ThemeName::count() - 1),
             ThemeName::BlackAndWhite
@@ -219,5 +253,6 @@ mod tests {
             ThemeName::by_index(ThemeName::count()),
             ThemeName::BlackAndWhite
         );
+        assert_eq!(ThemeName::by_index(usize::MAX), ThemeName::BlackAndWhite);
     }
 }

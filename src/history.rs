@@ -60,7 +60,7 @@ impl History {
     /// hasn't seen any change after `generations` steps, or the population
     /// hasn't changed during the registered history.
     pub fn is_stagnant(&self, generations: usize) -> bool {
-        if self.points.len() < generations {
+        if generations == 0 || self.points.len() < generations {
             return false;
         }
         self.board_unchanged_for(generations) || self.population_unchanged()
@@ -136,6 +136,23 @@ mod tests {
     }
 
     #[test]
+    fn add_point_records_board_state_at_insertion() {
+        let mut history = History::new(3);
+        let mut cells = board(BLOCK);
+        history.add_point(&cells);
+
+        cells.clear();
+        history.add_point(&cells);
+
+        assert_eq!(history.points[0].population_size, BLOCK.len());
+        assert_eq!(
+            history.points[0].fingerprint,
+            History::get_fingerprint(&board(BLOCK))
+        );
+        assert_eq!(history.points[1].population_size, 0);
+    }
+
+    #[test]
     fn window_of_one_keeps_latest_point() {
         let mut history = History::new(1);
         history.add_point(&board(BLOCK));
@@ -195,6 +212,34 @@ mod tests {
         history.add_point(&board(&[(5, 5), (5, 6), (6, 5), (6, 6), (7, 7)]));
 
         assert!(!history.is_stagnant(3));
+    }
+
+    #[test]
+    fn repeated_board_counts_only_within_requested_generations() {
+        let mut history = History::new(4);
+        history.add_point(&board(&[(0, 0)]));
+        history.add_point(&board(&[(0, 0), (0, 1)]));
+        history.add_point(&board(&[(0, 0), (0, 1), (0, 2)]));
+        history.add_point(&board(&[(0, 0)]));
+
+        assert!(!history.is_stagnant(3));
+        assert!(history.is_stagnant(4));
+
+        history.add_point(&board(BLOCK));
+        assert!(!history.is_stagnant(4));
+    }
+
+    #[test]
+    fn population_stagnation_uses_entire_retained_history() {
+        let mut history = History::new(3);
+        history.add_point(&board(&[(0, 0)]));
+        history.add_point(&board(&[(1, 0), (1, 1)]));
+        history.add_point(&board(&[(2, 0), (2, 1)]));
+
+        assert!(!history.is_stagnant(2));
+
+        history.add_point(&board(&[(3, 0), (3, 1)]));
+        assert!(history.is_stagnant(3));
     }
 
     #[test]
