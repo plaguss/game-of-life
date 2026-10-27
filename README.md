@@ -2,6 +2,12 @@
 
 A terminal renderer for [Conway's Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life), where cells evolve over successive generations according to simple rules.
 
+---
+
+![lifeterm.gif](./examples/lifeterm.gif)
+
+---
+
 ## Installation
 
 Once published on crates.io, install it with:
@@ -60,28 +66,8 @@ internal documentation with:
 cargo doc --no-deps --document-private-items --open
 ```
 
-## Publishing
-
-Before each release, update the version in `Cargo.toml`, run `cargo check` to
-update `Cargo.lock`, and commit the release changes.
-
-Authenticate with a crates.io API token (only needed once):
-
-```sh
-cargo login
-```
-
-Verify the package without uploading it, then publish:
-
-```sh
-cargo publish --dry-run --locked
-cargo publish --locked
-```
+For publishing and demo GIF generation, see the [release guide](RELEASE.md).
 
 ## TODO
 
-[ ] Create an example: <https://github.com/charmbracelet/vhs>
-    Needs a proper example of the different cases
-[ ] Upload to crates to make it easy to install
-[ ] Deploy pipeline
 [ ] Allow the density to be user provided
