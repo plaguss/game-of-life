@@ -130,9 +130,7 @@ pub fn grid_dimensions_for_terminal(area: Rect) -> Cell {
     // We can unwrap the try_from even if it doesn't fit because
     // the board (the terminal grid) cannot be biger than the i16 size
     (
-        (i16::try_from(board.height).unwrap() * 2)
-            .max(Grid::MIN_DIMENSION)
-            .into(),
+        (i16::try_from(board.height).unwrap() * 2).max(Grid::MIN_DIMENSION),
         i16::try_from(board.width).unwrap().max(Grid::MIN_DIMENSION),
     )
 }
@@ -273,7 +271,10 @@ pub fn help_message(frame: &mut Frame<'_>, area: Rect, theme: &Theme) {
         .title(" Help ")
         .style(theme.background)
         .border_style(theme.accent);
-    let help_message = Paragraph::new(text).wrap(Wrap { trim: true }).style(theme.text).block(help_block);
+    let help_message = Paragraph::new(text)
+        .wrap(Wrap { trim: true })
+        .style(theme.text)
+        .block(help_block);
     frame.render_widget(Clear, popup_area);
     frame.render_widget(help_message, popup_area);
 }
@@ -283,7 +284,7 @@ pub fn settings_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings, sel
     let items = [
         format!("FPS: {}", settings.fps),
         format!("Theme: {:?}", settings.theme),
-        format!("Pattern: {:?}", settings.pattern),
+        format!("Pattern: {}", settings.pattern),
         format!("Rule: {:?}", settings.rule),
         format!(
             "Auto: {}",
@@ -303,7 +304,8 @@ pub fn settings_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings, sel
         ),
     ];
 
-    let popup_area = get_popup_area(area, items.iter().len() as u16, 25);
+    let width = items.iter().map(|item| item.chars().count()).max().unwrap() as u16 + 4;
+    let popup_area = get_list_popup_area(area, items.len() as u16, width);
 
     let settings_block = Block::bordered()
         .title(" Settings ")
@@ -339,8 +341,7 @@ fn list(
     frame.render_stateful_widget(list, area, list_state);
 }
 
-/// Settings submenu functions:
-
+/// FPS submenu
 pub fn fps_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings) {
     let popup_area = get_popup_area(area, 1, 20);
 
@@ -366,6 +367,7 @@ pub fn fps_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings) {
     frame.render_widget(fps_line, block_area);
 }
 
+/// Theme selection submenu
 pub fn theme_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings, selected: usize) {
     let popup_area = get_popup_area(area, ThemeName::count() as u16, 20);
 
@@ -387,8 +389,14 @@ pub fn theme_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings, select
     );
 }
 
+/// Pattern selection submenu
 pub fn patterns_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings, selected: usize) {
-    let popup_area = get_popup_area(area, PatternName::count() as u16, 20);
+    let width = PatternName::iter()
+        .map(|name| name.to_string().chars().count())
+        .max()
+        .unwrap() as u16
+        + 4;
+    let popup_area = get_list_popup_area(area, PatternName::count() as u16, width);
 
     let theme = settings.get_theme();
 
@@ -408,6 +416,7 @@ pub fn patterns_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings, sel
     );
 }
 
+/// Rule selection submenu
 pub fn rule_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings, selected: usize) {
     let popup_area = get_popup_area(area, RuleName::count() as u16, 20);
 
@@ -446,6 +455,13 @@ fn get_popup_area(area: Rect, item_count: u16, content_space: u16) -> Rect {
         Constraint::Percentage(margin_per_side),
     ])
     .areas(popup_area);
+    popup_area
+}
+
+fn get_list_popup_area(area: Rect, item_count: u16, width: u16) -> Rect {
+    let mut popup_area = get_popup_area(area, item_count, 100);
+    popup_area.width = width.min(area.width);
+    popup_area.x = area.x + (area.width - popup_area.width) / 2;
     popup_area
 }
 
@@ -496,6 +512,57 @@ pub fn terminal_too_small(frame: &mut Frame<'_>, area: Rect, settings: &Settings
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn pattern_names_fit_and_scroll_on_minimum_terminal() {
+        let width = MIN_TERMINAL_WIDTH;
+        let height = MIN_TERMINAL_HEIGHT;
+        let backend = ratatui::backend::TestBackend::new(width, height);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        let settings = Settings::default();
+
+        for (selected, name) in PatternName::iter().enumerate() {
+            let frame = terminal
+                .draw(|frame| patterns_menu(frame, frame.area(), &settings, selected))
+                .unwrap();
+            let rows: Vec<String> = (0..height)
+                .map(|row| {
+                    (0..width)
+                        .map(|col| frame.buffer[(col, row)].symbol())
+                        .collect()
+                })
+                .collect();
+            let expected = format!("> {name}");
+            assert!(
+                rows.iter().any(|row| row.contains(&expected)),
+                "{expected} not visible"
+            );
+        }
+    }
+
+    #[test]
+    fn settings_displays_full_pattern_name_on_minimum_terminal() {
+        let backend = ratatui::backend::TestBackend::new(MIN_TERMINAL_WIDTH, MIN_TERMINAL_HEIGHT);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        let settings = Settings {
+            pattern: PatternName::MiddleweightSpaceship,
+            ..Settings::default()
+        };
+        let frame = terminal
+            .draw(|frame| settings_menu(frame, frame.area(), &settings, 2))
+            .unwrap();
+        let rows: Vec<String> = (0..MIN_TERMINAL_HEIGHT)
+            .map(|row| {
+                (0..MIN_TERMINAL_WIDTH)
+                    .map(|col| frame.buffer[(col, row)].symbol())
+                    .collect()
+            })
+            .collect();
+        assert!(
+            rows.iter()
+                .any(|row| row.contains("> Pattern: Middleweight spaceship"))
+        );
+    }
 
     #[test]
     fn help_fits_supported_terminal_sizes() {
@@ -578,7 +645,6 @@ mod tests {
         let theme = Theme::matrix();
         let mut grid = Grid::new(crate::rules::Rule::game_of_life());
         grid.set_pattern(&crate::patterns::Pattern::Fixed {
-            name: PatternName::Blinker,
             alive_cells: [(0, 0), (1, 0), (0, 1), (1, 2)].into_iter().collect(),
         });
         let backend = ratatui::backend::TestBackend::new(6, 3);
@@ -667,7 +733,6 @@ mod tests {
         let theme = Theme::matrix();
         let mut grid = Grid::new(crate::rules::Rule::game_of_life());
         grid.set_pattern(&crate::patterns::Pattern::Fixed {
-            name: PatternName::Blinker,
             alive_cells: [(1, 0), (1, 1), (1, 2)].into_iter().collect(),
         });
         grid.evolve();
@@ -711,7 +776,6 @@ mod tests {
         let height = grid.height();
         let width = grid.width();
         grid.set_pattern(&crate::patterns::Pattern::Fixed {
-            name: PatternName::Blinker,
             alive_cells: [(height, 0), (0, width)].into_iter().collect(),
         });
         grid.evolve();

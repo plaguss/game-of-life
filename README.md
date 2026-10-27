@@ -1,14 +1,57 @@
 # game-of-life
 
-A simple game of life simulator
+A terminal renderer for [Conway's Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life), where cells evolve over successive generations according to simple rules.
 
-After the startup panel, press `h` for a short guide to the simulation,
-keyboard controls, and settings. Press `s` to change settings, or `q` / `Esc`
-to quit from the board. The simulation keeps running while menus are open.
+## Installation
+
+Once published on crates.io, install it with:
+
+```sh
+cargo install game-of-life
+```
+
+Then start it from your terminal:
+
+```sh
+gol
+```
+
+## Usage
+
+Press `Enter` on the startup panel to begin. On the board, press `h` for help, `s` for settings, or `q` / `Esc` to quit. The simulation keeps running while menus are open. Use the arrow keys to navigate or adjust values, `Enter` to select, and `q`, `Esc`, or `Backspace` to go back.
+
+The settings menu offers:
+
+- **FPS**: adjust the simulation speed.
+- **Theme**: change the colors.
+- **Pattern**: restart the board with a different seed.
+- **Rule**: select birth and survival rules.
+- **Auto**: add random patterns when the board becomes sparse or stagnant, helping keep the simulation alive.
+- **Shadow**: show an afterglow of previously live cells.
+- TODO: **min-density**: minimum density after which a new pattern can be added (in auto mode).
+
+Patterns include selections from the [Game of Life Lab](https://www.gameoflifelab.com/#lab), where you can find more information and examples.
+
+## Development
+
+Install [prek](https://prek.j178.dev/) and the Rust `rustfmt` and `clippy` components, then enable the pre-commit hooks:
+
+```sh
+prek install
+```
+
+When Rust files in `src/` are staged, the hooks run `make fmt-check` and `make lint`. These commands check the project as a whole; formatting is not changed automatically. Run `make fmt` to fix formatting, or run both hooks manually with:
+
+```sh
+prek run --all-files
+```
+
+## TODO
 
 [ ] Create an example: https://github.com/charmbracelet/vhs
+    Needs a proper example of the different cases
 [ ] Upload to crates to make it easy to install
 [ ] Add more tests
 [ ] Deploy pipeline
-[ ] Add to the bottom/right the values actually selected in the settings
 [ ] Allow the density to be user provided.
+[ ] Add more patterns, links and brief explanation on the different settings.

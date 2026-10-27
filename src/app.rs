@@ -196,7 +196,9 @@ impl App {
                 _ => {}
             },
             CurrentMenu::Help => match key_event.code {
-                KeyCode::Char('q') | KeyCode::Backspace | KeyCode::Esc => self.current_menu = CurrentMenu::None,
+                KeyCode::Char('q') | KeyCode::Backspace | KeyCode::Esc => {
+                    self.current_menu = CurrentMenu::None
+                }
                 _ => {}
             },
             CurrentMenu::Settings(page) => self.handle_settings_key(page, key_event),
@@ -344,12 +346,9 @@ impl App {
         // if we are creating a random soup
         self.fit_grid();
         self.grid.set_pattern(pattern);
-        match pattern {
-            Pattern::Fixed { .. } => {
-                self.grid.center_alive_cells();
-            }
-            // There's no need to recenter on a RandomSoup
-            _ => {}
+        // There's no need to recenter on a RandomSoup
+        if let Pattern::Fixed { .. } = pattern {
+            self.grid.center_alive_cells();
         }
     }
 
@@ -371,7 +370,7 @@ impl App {
 
 /// Helper function to allow the navigation selector to wraparound when overflowing
 fn wraparound_menu(selected_index: usize, menu_count: usize, direction: Direction) -> usize {
-    return match direction {
+    match direction {
         Direction::Down => {
             if selected_index == menu_count - 1 {
                 0
@@ -386,5 +385,5 @@ fn wraparound_menu(selected_index: usize, menu_count: usize, direction: Directio
                 selected_index.saturating_sub(1)
             }
         }
-    };
+    }
 }

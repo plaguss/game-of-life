@@ -1,0 +1,15 @@
+repos:
+  - repo: local
+    hooks:
+      - id: cargo-fmt
+        name: make fmt-check
+        entry: make fmt-check
+        language: system
+        files: ^src/.*\.rs$
+        pass_filenames: false
+      - id: cargo-clippy
+        name: make lint
+        entry: make lint
+        language: system
+        files: ^src/.*\.rs$
+        pass_filenames: false

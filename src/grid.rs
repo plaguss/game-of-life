@@ -108,10 +108,7 @@ impl Grid {
     /// size to fill the space properly.
     pub fn set_pattern(&mut self, pattern: &Pattern) {
         match pattern {
-            Pattern::Fixed {
-                name: _,
-                alive_cells,
-            } => {
+            Pattern::Fixed { alive_cells } => {
                 self.alive_cells = alive_cells.clone();
             }
             Pattern::RandomSoup { density } => {
@@ -128,40 +125,34 @@ impl Grid {
     /// the available board. Does nothing if the pattern has no cells
     /// or doesn't fit within the grid.
     pub fn add_pattern(&mut self, pattern: &Pattern) {
-        match pattern {
-            Pattern::Fixed {
-                name: _,
-                alive_cells,
-            } => {
-                if alive_cells.is_empty() {
-                    return;
-                }
-                let mut rng = rand::rng();
-
-                // Get the pattern's bounding box to ensure it fits within the grid.
-                // The cells are non-empty, so the min/max always exist.
-                let min_row = alive_cells.iter().map(|&(r, _)| r).min().unwrap();
-                let min_col = alive_cells.iter().map(|&(_, c)| c).min().unwrap();
-                let max_row = alive_cells.iter().map(|&(r, _)| r).max().unwrap();
-                let max_col = alive_cells.iter().map(|&(_, c)| c).max().unwrap();
-                let pattern_height = max_row - min_row + 1;
-                let pattern_width = max_col - min_col + 1;
-                if pattern_height > self.height || pattern_width > self.width {
-                    return;
-                }
-
-                let offset_row = rng.random_range(0..=(self.height - pattern_height));
-                let offset_col = rng.random_range(0..=(self.width - pattern_width));
-
-                // Reposition the alive cells
-                let new_alive_cells: AliveCells = alive_cells
-                    .iter()
-                    .map(|&(r, c)| (r - min_row + offset_row, c - min_col + offset_col))
-                    .collect();
-
-                self.alive_cells = self.alive_cells.union(&new_alive_cells).copied().collect();
+        if let Pattern::Fixed { alive_cells } = pattern {
+            if alive_cells.is_empty() {
+                return;
             }
-            _ => {}
+            let mut rng = rand::rng();
+
+            // Get the pattern's bounding box to ensure it fits within the grid.
+            // The cells are non-empty, so the min/max always exist.
+            let min_row = alive_cells.iter().map(|&(r, _)| r).min().unwrap();
+            let min_col = alive_cells.iter().map(|&(_, c)| c).min().unwrap();
+            let max_row = alive_cells.iter().map(|&(r, _)| r).max().unwrap();
+            let max_col = alive_cells.iter().map(|&(_, c)| c).max().unwrap();
+            let pattern_height = max_row - min_row + 1;
+            let pattern_width = max_col - min_col + 1;
+            if pattern_height > self.height || pattern_width > self.width {
+                return;
+            }
+
+            let offset_row = rng.random_range(0..=(self.height - pattern_height));
+            let offset_col = rng.random_range(0..=(self.width - pattern_width));
+
+            // Reposition the alive cells
+            let new_alive_cells: AliveCells = alive_cells
+                .iter()
+                .map(|&(r, c)| (r - min_row + offset_row, c - min_col + offset_col))
+                .collect();
+
+            self.alive_cells = self.alive_cells.union(&new_alive_cells).copied().collect();
         }
     }
 
@@ -185,7 +176,7 @@ impl Grid {
     /// - When expanding, nothing is done, just let the cells evolve as usual.
     /// - Shrinking without collisions, nothing changes
     /// - Shrinking with collisions: the whole pattern is recentered. It may look
-    /// like a jump, but the pattern isn't split.
+    ///   like a jump, but the pattern isn't split.
     pub fn resize(&mut self, height: i16, width: i16) {
         self.height = height.max(Self::MIN_DIMENSION);
         self.width = width.max(Self::MIN_DIMENSION);
@@ -240,12 +231,12 @@ impl Grid {
             if self.alive_cells.contains(cell) {
                 // If it's alive
                 if self.rule.survival.contains(num) {
-                    next_alive_cells.insert(cell.clone());
+                    next_alive_cells.insert(*cell);
                 }
             } else {
                 // If it's dead
                 if self.rule.birth.contains(num) {
-                    next_alive_cells.insert(cell.clone());
+                    next_alive_cells.insert(*cell);
                 }
             }
         }
@@ -399,7 +390,6 @@ mod tests {
     fn add_pattern_ignores_empty_patterns() {
         let mut grid = Grid::new(Rule::game_of_life());
         grid.add_pattern(&Pattern::Fixed {
-            name: PatternName::Blinker,
             alive_cells: HashSet::new(),
         });
 
@@ -410,7 +400,6 @@ mod tests {
     fn add_pattern_ignores_patterns_larger_than_grid() {
         let mut grid = Grid::new(Rule::game_of_life());
         grid.add_pattern(&Pattern::Fixed {
-            name: PatternName::Blinker,
             alive_cells: HashSet::from([(0, 0), (Grid::MIN_DIMENSION, 0)]),
         });
 

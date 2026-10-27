@@ -17,8 +17,18 @@ pub enum PatternName {
     Pulsar,
     PentaDecathlon,
     Glider,
+    LightweightSpaceship,
+    MiddleweightSpaceship,
+    HeavyweightSpaceship,
+    Loafer,
     GliderGun,
     Bunnies,
+    Diehard,
+    Acorn,
+    BHeptomino,
+    Herschel,
+    SwitchEngine,
+    Pufferfish,
     RandomSoup,
 }
 
@@ -42,8 +52,18 @@ impl fmt::Display for PatternName {
             PatternName::Pulsar => write!(f, "Pulsar"),
             PatternName::PentaDecathlon => write!(f, "Penta Decathlon"),
             PatternName::Glider => write!(f, "Glider"),
+            PatternName::LightweightSpaceship => write!(f, "Lightweight spaceship"),
+            PatternName::MiddleweightSpaceship => write!(f, "Middleweight spaceship"),
+            PatternName::HeavyweightSpaceship => write!(f, "Heavyweight spaceship"),
+            PatternName::Loafer => write!(f, "Loafer"),
             PatternName::GliderGun => write!(f, "Glider Gun"),
             PatternName::Bunnies => write!(f, "Bunnies"),
+            PatternName::Diehard => write!(f, "Diehard"),
+            PatternName::Acorn => write!(f, "Acorn"),
+            PatternName::BHeptomino => write!(f, "B-heptomino"),
+            PatternName::Herschel => write!(f, "Herschel"),
+            PatternName::SwitchEngine => write!(f, "Switch engine"),
+            PatternName::Pufferfish => write!(f, "Pufferfish"),
             PatternName::RandomSoup => write!(f, "Random Soup"),
         }
     }
@@ -51,13 +71,8 @@ impl fmt::Display for PatternName {
 
 #[derive(Debug, Clone)]
 pub enum Pattern {
-    Fixed {
-        name: PatternName,
-        alive_cells: AliveCells,
-    },
-    RandomSoup {
-        density: f32,
-    },
+    Fixed { alive_cells: AliveCells },
+    RandomSoup { density: f32 },
 }
 
 impl Pattern {
@@ -76,10 +91,7 @@ impl Pattern {
             .copied()
             .collect();
 
-        Self::Fixed {
-            name: pattern_name,
-            alive_cells,
-        }
+        Self::Fixed { alive_cells }
     }
 
     /// Special type of pattern that determines the alive cells based on a density pattern.
@@ -203,6 +215,80 @@ pub fn available_patterns() -> HashMap<PatternName, &'static [Cell]> {
     );
 
     patterns.insert(
+        PatternName::LightweightSpaceship,
+        &[
+            (0, 1),
+            (0, 2),
+            (0, 3),
+            (0, 4),
+            (1, 0),
+            (1, 4),
+            (2, 4),
+            (3, 0),
+            (3, 3),
+        ],
+    );
+    patterns.insert(
+        PatternName::MiddleweightSpaceship,
+        &[
+            (0, 3),
+            (1, 1),
+            (1, 5),
+            (2, 0),
+            (3, 0),
+            (3, 5),
+            (4, 0),
+            (4, 1),
+            (4, 2),
+            (4, 3),
+            (4, 4),
+        ],
+    );
+    patterns.insert(
+        PatternName::HeavyweightSpaceship,
+        &[
+            (0, 3),
+            (0, 4),
+            (1, 1),
+            (1, 6),
+            (2, 0),
+            (3, 0),
+            (3, 6),
+            (4, 0),
+            (4, 1),
+            (4, 2),
+            (4, 3),
+            (4, 4),
+            (4, 5),
+        ],
+    );
+    patterns.insert(
+        PatternName::Loafer,
+        &[
+            (0, 1),
+            (0, 2),
+            (0, 5),
+            (0, 7),
+            (0, 8),
+            (1, 0),
+            (1, 3),
+            (1, 6),
+            (1, 7),
+            (2, 1),
+            (2, 3),
+            (3, 2),
+            (4, 8),
+            (5, 6),
+            (5, 7),
+            (5, 8),
+            (6, 5),
+            (7, 6),
+            (8, 7),
+            (8, 8),
+        ],
+    );
+
+    patterns.insert(
         PatternName::GliderGun,
         &[
             (0, 24),
@@ -264,32 +350,238 @@ pub fn available_patterns() -> HashMap<PatternName, &'static [Cell]> {
         &[(0, 1), (0, 2), (1, 0), (1, 1), (2, 1)],
     );
 
+    patterns.insert(
+        PatternName::Diehard,
+        &[(0, 6), (1, 0), (1, 1), (2, 1), (2, 5), (2, 6), (2, 7)],
+    );
+    patterns.insert(
+        PatternName::Acorn,
+        &[(0, 1), (1, 3), (2, 0), (2, 1), (2, 4), (2, 5), (2, 6)],
+    );
+    patterns.insert(
+        PatternName::BHeptomino,
+        &[(0, 1), (0, 2), (0, 3), (1, 0), (1, 1), (1, 2), (2, 1)],
+    );
+    patterns.insert(
+        PatternName::Herschel,
+        &[(0, 0), (1, 0), (1, 1), (1, 2), (2, 0), (2, 2), (3, 2)],
+    );
+    patterns.insert(
+        PatternName::SwitchEngine,
+        &[
+            (0, 1),
+            (0, 3),
+            (1, 0),
+            (2, 1),
+            (2, 4),
+            (3, 3),
+            (3, 4),
+            (3, 5),
+        ],
+    );
+    patterns.insert(
+        PatternName::Pufferfish,
+        &[
+            (0, 3),
+            (0, 11),
+            (1, 2),
+            (1, 3),
+            (1, 4),
+            (1, 10),
+            (1, 11),
+            (1, 12),
+            (2, 1),
+            (2, 2),
+            (2, 5),
+            (2, 9),
+            (2, 12),
+            (2, 13),
+            (3, 3),
+            (3, 4),
+            (3, 5),
+            (3, 9),
+            (3, 10),
+            (3, 11),
+            (5, 4),
+            (5, 10),
+            (6, 2),
+            (6, 5),
+            (6, 9),
+            (6, 12),
+            (7, 0),
+            (7, 6),
+            (7, 8),
+            (7, 14),
+            (8, 0),
+            (8, 1),
+            (8, 6),
+            (8, 8),
+            (8, 13),
+            (8, 14),
+            (9, 6),
+            (9, 8),
+            (10, 3),
+            (10, 5),
+            (10, 9),
+            (10, 11),
+            (11, 4),
+            (11, 10),
+        ],
+    );
+
     patterns
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{grid::Grid, rules::Rule};
+
+    fn centered_grid(name: PatternName) -> Grid {
+        let mut grid = Grid::new(Rule::game_of_life());
+        grid.resize(400, 400);
+        grid.set_pattern(&Pattern::from(name));
+        grid.center_alive_cells();
+        grid
+    }
+
+    #[test]
+    fn new_patterns_match_catalog_layouts() {
+        let cases: &[(PatternName, &[&str])] = &[
+            (
+                PatternName::LightweightSpaceship,
+                &[".OOOO", "O...O", "....O", "O..O."],
+            ),
+            (
+                PatternName::MiddleweightSpaceship,
+                &["...O..", ".O...O", "O.....", "O....O", "OOOOO."],
+            ),
+            (
+                PatternName::HeavyweightSpaceship,
+                &["...OO..", ".O....O", "O......", "O.....O", "OOOOOO."],
+            ),
+            (
+                PatternName::Loafer,
+                &[
+                    ".OO..O.OO",
+                    "O..O..OO.",
+                    ".O.O.....",
+                    "..O......",
+                    "........O",
+                    "......OOO",
+                    ".....O...",
+                    "......O..",
+                    ".......OO",
+                ],
+            ),
+            (PatternName::Diehard, &["......O.", "OO......", ".O...OOO"]),
+            (PatternName::Acorn, &[".O.....", "...O...", "OO..OOO"]),
+            (PatternName::BHeptomino, &[".OOO", "OOO.", ".O.."]),
+            (PatternName::Herschel, &["O..", "OOO", "O.O", "..O"]),
+            (
+                PatternName::SwitchEngine,
+                &[".O.O..", "O.....", ".O..O.", "...OOO"],
+            ),
+            (
+                PatternName::Pufferfish,
+                &[
+                    "...O.......O...",
+                    "..OOO.....OOO..",
+                    ".OO..O...O..OO.",
+                    "...OOO...OOO...",
+                    "...............",
+                    "....O.....O....",
+                    "..O..O...O..O..",
+                    "O.....O.O.....O",
+                    "OO....O.O....OO",
+                    "......O.O......",
+                    "...O.O...O.O...",
+                    "....O.....O....",
+                ],
+            ),
+        ];
+        let available = available_patterns();
+        for &(name, rows) in cases {
+            let expected: AliveCells = rows
+                .iter()
+                .enumerate()
+                .flat_map(|(row, cells)| {
+                    cells.bytes().enumerate().filter_map(move |(col, cell)| {
+                        (cell == b'O').then_some((row as i16, col as i16))
+                    })
+                })
+                .collect();
+            let actual = available[&name];
+            assert_eq!(actual.len(), expected.len(), "{name}");
+            assert_eq!(
+                actual.iter().copied().collect::<AliveCells>(),
+                expected,
+                "{name}"
+            );
+        }
+    }
+
+    #[test]
+    fn new_spaceships_translate_after_their_period() {
+        for (name, period, delta) in [
+            (PatternName::LightweightSpaceship, 4, (0, 2)),
+            (PatternName::MiddleweightSpaceship, 4, (0, -2)),
+            (PatternName::HeavyweightSpaceship, 4, (0, -2)),
+            (PatternName::Loafer, 7, (0, -1)),
+        ] {
+            let mut grid = centered_grid(name);
+            let expected: AliveCells = grid
+                .get_alive_cells()
+                .iter()
+                .map(|&(row, col)| (row + delta.0, col + delta.1))
+                .collect();
+            for _ in 0..period {
+                grid.evolve();
+            }
+            assert_eq!(grid.get_alive_cells(), &expected, "{name}");
+        }
+    }
+
+    #[test]
+    fn diehard_dies_at_generation_130() {
+        let mut grid = centered_grid(PatternName::Diehard);
+        for _ in 0..129 {
+            grid.evolve();
+        }
+        assert!(grid.population() > 0);
+        grid.evolve();
+        assert_eq!(grid.population(), 0);
+    }
+
+    #[test]
+    fn growth_patterns_evolve_on_a_large_board() {
+        for (name, population) in [
+            (PatternName::SwitchEngine, 66),
+            (PatternName::Pufferfish, 122),
+        ] {
+            let mut grid = centered_grid(name);
+            for _ in 0..100 {
+                grid.evolve();
+            }
+            assert_eq!(grid.population(), population, "{name}");
+        }
+    }
 
     #[test]
     fn from_loads_expected_pattern() {
         let available = available_patterns();
         for pattern_name in PatternName::iter() {
             let pattern = Pattern::from(pattern_name);
-            match pattern {
-                Pattern::Fixed { name, alive_cells } => {
-                    assert_eq!(name, pattern_name);
-                    assert_eq!(
-                        alive_cells,
-                        available
-                            .get(&pattern_name)
-                            .unwrap()
-                            .iter()
-                            .copied()
-                            .collect()
-                    );
-                }
-                _ => {} // don't check anything for the moment
+            if let Pattern::Fixed { alive_cells } = pattern {
+                assert_eq!(
+                    alive_cells,
+                    available
+                        .get(&pattern_name)
+                        .unwrap()
+                        .iter()
+                        .copied()
+                        .collect()
+                );
             }
         }
     }
