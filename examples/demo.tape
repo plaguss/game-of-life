@@ -1,5 +1,5 @@
 Output examples/lifeterm.gif
-Require ./target/debug/lifeterm
+Require ./target/release/lifeterm
 
 Set Width 1600
 Set Height 900
@@ -7,7 +7,7 @@ Set FontSize 18
 Set TypingSpeed 100ms
 
 Hide
-Type "./target/debug/lifeterm"
+Type "./target/release/lifeterm"
 Enter
 Sleep 500ms
 Show
