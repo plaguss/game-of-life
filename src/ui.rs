@@ -60,7 +60,7 @@ pub fn startup_banner(frame: &mut Frame<'_>, area: Rect, theme: &Theme) {
         )]),
         Line::from(vec![
             Span::raw("Once you press <Enter>, the simulation will start, and you"),
-            Span::raw(" can interact ONLY with your keyboard, "),
+            Span::raw(" can interact ONLY with your keyboard,"),
             Span::raw(" using the keys listed in the lower left corner, "),
             Span::styled(
                 "this message will dissapear",
