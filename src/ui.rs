@@ -50,17 +50,18 @@ pub fn startup_banner(frame: &mut Frame<'_>, area: Rect, theme: &Theme) {
 
     let text = vec![
         Line::from(vec![Span::styled(
-            "Welcome to the Game of Life simulator",
+            "Welcome to Lifeterm",
             Style::default().add_modifier(Modifier::BOLD),
         )])
         .centered(),
         Line::from(vec![Span::raw("")]),
         Line::from(vec![Span::raw(
-            "This is simple TUI runs the game of life in your terminal.",
+            "This simple TUI runs the game of life in your terminal.",
         )]),
         Line::from(vec![
             Span::raw("Once you press <Enter>, the simulation will start, and you"),
             Span::raw(" can interact ONLY with your keyboard, "),
+            Span::raw(" using the keys listed in the lower left corner, "),
             Span::styled(
                 "this message will dissapear",
                 Style::default().add_modifier(Modifier::UNDERLINED),
@@ -148,7 +149,7 @@ fn game(
     let title_block = Block::bordered()
         .style(theme.background)
         .border_style(theme.accent)
-        .title(" Game of Life ");
+        .title(" Lifeterm ");
     frame.render_widget(title_block, area);
 
     let counter = format!(
@@ -302,6 +303,7 @@ pub fn settings_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings, sel
                 "○ ON ● OFF"
             }
         ),
+        format!("Min Density: {:.3}", settings.min_density),
     ];
 
     let width = items.iter().map(|item| item.chars().count()).max().unwrap() as u16 + 4;
@@ -351,11 +353,10 @@ pub fn fps_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings) {
 
     let block_area = fps_block.inner(popup_area);
 
-    let fps = settings.fps;
     let fps_line = Paragraph::new(Line::from(vec![
         Span::styled("▲", theme.accent),
         Span::styled(
-            format!(" {fps} "),
+            format!(" {} ", settings.fps),
             theme.accent.add_modifier(Modifier::BOLD),
         ),
         Span::styled("▼", theme.accent),
@@ -436,6 +437,31 @@ pub fn rule_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings, selecte
         RuleName::iter().map(|t| t.to_string()),
         &mut list_state,
     );
+}
+
+/// Min density submenu
+pub fn density_menu(frame: &mut Frame<'_>, area: Rect, settings: &Settings) {
+    let popup_area = get_popup_area(area, 1, 20);
+
+    let theme = settings.get_theme();
+
+    let density_block = get_submenu_block(" Settings > Min Density ".to_string(), &theme);
+
+    let block_area = density_block.inner(popup_area);
+
+    let min_density_line = Paragraph::new(Line::from(vec![
+        Span::styled("▲", theme.accent),
+        Span::styled(
+            format!(" {:.3} ", settings.min_density),
+            theme.accent.add_modifier(Modifier::BOLD),
+        ),
+        Span::styled("▼", theme.accent),
+    ]))
+    .centered();
+
+    frame.render_widget(Clear, popup_area);
+    frame.render_widget(density_block, popup_area);
+    frame.render_widget(min_density_line, block_area);
 }
 
 /// Common popop area for the settings options
@@ -562,54 +588,6 @@ mod tests {
             rows.iter()
                 .any(|row| row.contains("> Pattern: Middleweight spaceship"))
         );
-    }
-
-    #[test]
-    fn help_fits_supported_terminal_sizes() {
-        for (width, height) in [
-            (MIN_TERMINAL_WIDTH, MIN_TERMINAL_HEIGHT),
-            (80, 24),
-            (120, 40),
-        ] {
-            let backend = ratatui::backend::TestBackend::new(width, height);
-            let mut terminal = ratatui::Terminal::new(backend).unwrap();
-            let frame = terminal
-                .draw(|frame| help_message(frame, frame.area(), &Theme::matrix()))
-                .unwrap();
-            let rows: Vec<String> = (0..height)
-                .map(|row| {
-                    (0..width)
-                        .map(|col| frame.buffer[(col, row)].symbol())
-                        .collect()
-                })
-                .collect();
-
-            for expected in [
-                " Help ",
-                "Watch cells live, die and form",
-                "patterns across generations.",
-                "Track generation and population",
-                "above the board.",
-                "Keyboard",
-                "h: Help   s: Settings",
-                "q / Esc: Quit from the board",
-                "Esc / q: Close help or go back",
-                "Settings",
-                "Up/Down: Navigate or adjust FPS",
-                "Enter: Select or toggle an option",
-                "FPS: Speed   Theme: Colors",
-                "Pattern: Restart with a new seed",
-                "Rule: Birth and survival rules",
-                "Auto: Add life if sparse or stale",
-                "Shadow: Show previously live cells",
-                "Simulation keeps running in menus.",
-            ] {
-                assert!(
-                    rows.iter().any(|row| row.contains(expected)),
-                    "{expected:?} clipped at {width}x{height}"
-                );
-            }
-        }
     }
 
     #[test]

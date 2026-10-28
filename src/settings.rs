@@ -27,9 +27,9 @@ impl Settings {
             fps: 12,
             pattern: PatternName::default(),
             rule: RuleName::default(),
-            auto: false,
-            min_density: 0.005,
-            shadow: false,
+            auto: true,
+            min_density: 0.15,
+            shadow: true,
         }
     }
 
@@ -60,13 +60,13 @@ mod tests {
     fn defaults_match_initial_app_settings() {
         let settings = Settings::default();
 
-        assert_eq!(settings.theme, ThemeName::Nord);
+        assert_eq!(settings.theme, ThemeName::VioletHaze);
         assert_eq!(settings.fps, 12);
-        assert_eq!(settings.pattern, PatternName::Rpentomino);
+        assert_eq!(settings.pattern, PatternName::RandomSoup);
         assert_eq!(settings.rule, RuleName::GameOfLife);
-        assert!(!settings.auto);
-        assert_eq!(settings.min_density, 0.005);
-        assert!(!settings.shadow);
+        assert!(settings.auto);
+        assert_eq!(settings.min_density, 0.15);
+        assert!(settings.shadow);
     }
 
     #[test]

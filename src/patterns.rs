@@ -12,7 +12,6 @@ pub enum PatternName {
     Blinker,
     Toad,
     Beacon,
-    #[default]
     Rpentomino,
     Pulsar,
     PentaDecathlon,
@@ -29,6 +28,7 @@ pub enum PatternName {
     Herschel,
     SwitchEngine,
     Pufferfish,
+    #[default]
     RandomSoup,
 }
 

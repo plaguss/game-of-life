@@ -5,6 +5,7 @@ use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use rand::RngExt;
 use ratatui::layout::Rect;
 use ratatui::{DefaultTerminal, Frame};
+use strum::{EnumIter, IntoEnumIterator};
 
 use crate::rules::RuleName;
 use crate::{
@@ -37,13 +38,20 @@ pub enum CurrentMenu {
 }
 
 /// The subpages for the settings menu
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, EnumIter)]
 pub enum SettingsPage {
     Main { selected: usize },
     Fps,
     Theme { selected: usize },
     Pattern { selected: usize },
     Rule { selected: usize },
+    MinDensity,
+}
+
+impl SettingsPage {
+    pub fn count() -> usize {
+        Self::iter().len()
+    }
 }
 
 pub struct App {
@@ -156,6 +164,7 @@ impl App {
                 SettingsPage::Rule { selected } => {
                     ui::rule_menu(frame, area, &self.settings, *selected);
                 }
+                SettingsPage::MinDensity => ui::density_menu(frame, area, &self.settings),
             },
         }
     }
@@ -212,6 +221,7 @@ impl App {
             SettingsPage::Theme { selected } => self.on_theme_page(key_event, selected),
             SettingsPage::Pattern { selected } => self.on_patterns_page(key_event, selected),
             SettingsPage::Rule { selected } => self.on_rules_page(key_event, selected),
+            SettingsPage::MinDensity => self.on_density_page(key_event),
         }
     }
 
@@ -219,12 +229,12 @@ impl App {
         match key_event.code {
             KeyCode::Down => {
                 self.current_menu = CurrentMenu::Settings(SettingsPage::Main {
-                    selected: wraparound_menu(selected, 6, Direction::Down),
+                    selected: wraparound_menu(selected, SettingsPage::count() + 1, Direction::Down),
                 })
             }
             KeyCode::Up => {
                 self.current_menu = CurrentMenu::Settings(SettingsPage::Main {
-                    selected: wraparound_menu(selected, 6, Direction::Up),
+                    selected: wraparound_menu(selected, SettingsPage::count() + 1, Direction::Up),
                 })
             }
             KeyCode::Enter => match selected {
@@ -236,6 +246,7 @@ impl App {
                 3 => self.current_menu = CurrentMenu::Settings(SettingsPage::Rule { selected: 0 }),
                 4 => self.settings.auto = !self.settings.auto,
                 5 => self.settings.shadow = !self.settings.shadow,
+                6 => self.current_menu = CurrentMenu::Settings(SettingsPage::MinDensity),
                 _ => {}
             },
             KeyCode::Char('q') | KeyCode::Esc | KeyCode::Backspace => {
@@ -320,6 +331,37 @@ impl App {
             }
             KeyCode::Char('q') | KeyCode::Esc | KeyCode::Backspace => {
                 self.current_menu = CurrentMenu::Settings(SettingsPage::Main { selected: 3 })
+            }
+            _ => {}
+        }
+    }
+
+    fn on_density_page(&mut self, key_event: KeyEvent) {
+        match key_event.code {
+            KeyCode::Down => {
+                let delta = if self.settings.min_density > 0.01 {
+                    0.01
+                } else {
+                    0.001
+                };
+                self.settings.min_density = (self.settings.min_density - delta).clamp(0.0, 0.5)
+            }
+            KeyCode::Up => {
+                let delta = if self.settings.min_density > 0.01 {
+                    0.01
+                } else {
+                    0.001
+                };
+                self.settings.min_density = (self.settings.min_density + delta).clamp(0.0, 0.5)
+            }
+            KeyCode::Left => {
+                self.settings.min_density = (self.settings.min_density - 0.05).clamp(0.0, 0.5)
+            }
+            KeyCode::Right => {
+                self.settings.min_density = (self.settings.min_density + 0.05).clamp(0.0, 0.5)
+            }
+            KeyCode::Char('q') | KeyCode::Esc | KeyCode::Backspace => {
+                self.current_menu = CurrentMenu::Settings(SettingsPage::Main { selected: 0 })
             }
             _ => {}
         }

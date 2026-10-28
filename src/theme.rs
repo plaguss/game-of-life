@@ -8,8 +8,8 @@ pub enum ThemeName {
     Matrix,
     Cyberpunk,
     RetroAmber,
-    #[default]
     Nord,
+    #[default]
     VioletHaze,
     RosePineDawn,
     BlackAndWhite,
