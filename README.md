@@ -2,11 +2,7 @@
 
 A terminal renderer for [Conway's Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life), where cells evolve over successive generations according to simple rules.
 
----
-
 ![lifeterm.gif](./examples/lifeterm.gif)
-
----
 
 ## Installation
 
@@ -67,7 +63,3 @@ cargo doc --no-deps --document-private-items --open
 ```
 
 For publishing and demo GIF generation, see the [release guide](RELEASE.md).
-
-## TODO
-
-[ ] Allow the density to be user provided
